@@ -24,7 +24,7 @@ h1 {
 	font-weight: lighter;
 	font-variant:small-caps;
 	background-color: #FFFFFF;
-	color:#000000
+	color:#000000;
 	margin-top: 0pt;
 	margin-bottom: 6pt;
 }
@@ -33,7 +33,7 @@ h2 {
 	font-size: large;
     font-weight: lighter;
 	background-color: #FFFFFF;
-	color:#000000
+	color:#000000;
 	margin-top: 6pt;
 	margin-bottom: 6pt;
 }
@@ -42,7 +42,7 @@ h3 {
 	font-size: medium;
     font-weight: lighter;
     background-color: #FFFFFF;
-    color:#000000
+    color:#000000;
 	margin-top:6pt;
 	margin-bottom: 6pt;
 	position: relative;
@@ -115,7 +115,6 @@ table.noborder th {
     border-style: inset;
     border-color: gray;
     background-color: white;
-    -moz-border-radius: ;
 }
 
 table.noborder td {
