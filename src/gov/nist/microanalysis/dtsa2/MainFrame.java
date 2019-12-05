@@ -491,7 +491,7 @@ public class MainFrame extends JFrame {
 	public MainFrame() {
 		super();
 		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
-		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
 		try {
 			initialize();
 			otherInit();
@@ -1399,7 +1399,7 @@ public class MainFrame extends JFrame {
 		jMenuFile_Exit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				fileExit();
+				MainFrame.this.setVisible(false);
 			}
 		});
 		jMenu_File.addSeparator();
@@ -2068,8 +2068,8 @@ public class MainFrame extends JFrame {
 	@Override
 	protected void processWindowEvent(WindowEvent e) {
 		super.processWindowEvent(e);
-		if (e.getID() == WindowEvent.WINDOW_CLOSING)
-			fileExit();
+		//if (e.getID() == WindowEvent.WINDOW_CLOSING) 
+			//fileExit();
 	}
 
 	/**
@@ -2140,6 +2140,10 @@ public class MainFrame extends JFrame {
 		invokeCarefully(r);
 	}
 
+	public void openEMSASpectrumString(String emsa, String title) throws EPQException  {
+		importSpectra(SpectrumFile.openEMSAString(emsa, title), true);
+	}
+	
 	public void openSpectrumFile(File f) throws EPQException {
 		importSpectra(SpectrumFile.open(f), true);
 	}

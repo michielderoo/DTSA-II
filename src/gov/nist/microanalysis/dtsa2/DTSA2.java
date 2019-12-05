@@ -105,8 +105,8 @@ public class DTSA2 {
          catch(final RuntimeException e) {
             // Ignore it...
          }
-      mFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-      mFrame.setVisible(true);
+      mFrame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+      //mFrame.setVisible(true);
       mFrame.flushHtml();
    }
 
