@@ -3249,6 +3249,11 @@ public class MainFrame extends JFrame {
 		mPreviousScript = f;
 	}
 
+	public void runPythonScriptString(String script)
+	{
+		jCommandLine_Main.execute(script);
+	}
+	
 	public Writer getStandardOutput() {
 		return jCommandLine_Main.getStandardOutput();
 	}
