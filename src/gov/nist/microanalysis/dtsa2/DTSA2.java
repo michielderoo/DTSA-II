@@ -100,7 +100,7 @@ public class DTSA2 {
       if(url != null)
          try {
             final ImageIcon ii = new ImageIcon(url);
-            mFrame.setIconImage(ii.getImage());
+            //mFrame.setIconImage(ii.getImage());
          }
          catch(final RuntimeException e) {
             // Ignore it...

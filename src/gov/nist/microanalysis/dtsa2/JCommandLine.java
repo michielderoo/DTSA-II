@@ -748,6 +748,7 @@ public class JCommandLine
          mCommands.add("import sys");
          final String path = System.getProperty("user.dir").replace('\\', '/');
          mCommands.add("sys.path.append(\"" + path + "/Lib\")");
+         mCommands.add("sys.path.append(\"" + path + "/lib\")");
          // mCommands.add("sys.add_extdir(\"" + path + "\")");
       }
 
