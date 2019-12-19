@@ -1228,7 +1228,7 @@ public class MainFrame extends JFrame {
 		jMenuItem_SaveAs.setMnemonic(KeyEvent.VK_A);
 		jMenuItem_SaveAs.setText("Save As");
 		jMenuItem_SaveAs.setAccelerator(
-				KeyStroke.getKeyStroke(KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+				KeyStroke.getKeyStroke(KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		jMenuItem_SaveAs.addActionListener(new java.awt.event.ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -1260,7 +1260,7 @@ public class MainFrame extends JFrame {
 		jMenuItem_PrintSpectra.setText("Spectra");
 		jMenuItem_PrintSpectra.setMnemonic(KeyEvent.VK_S);
 		jMenuItem_PrintSpectra.setAccelerator(
-				KeyStroke.getKeyStroke(KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+				KeyStroke.getKeyStroke(KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 
 		jMenuItem_PrintSpectra.addActionListener(new java.awt.event.ActionListener() {
 			@Override
@@ -1304,7 +1304,7 @@ public class MainFrame extends JFrame {
 
 		jMenuItem_Open.setMnemonic(KeyEvent.VK_O);
 		jMenuItem_Open.setAccelerator(
-				KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+				KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		jMenuItem_Open.setText("Open...");
 		jMenuItem_Open.addActionListener(new java.awt.event.ActionListener() {
 			@Override
@@ -1394,7 +1394,7 @@ public class MainFrame extends JFrame {
 
 		jMenuFile_Exit.setMnemonic(KeyEvent.VK_X);
 		jMenuFile_Exit.setAccelerator(
-				KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+				KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		jMenuFile_Exit.setText("Exit");
 		jMenuFile_Exit.addActionListener(new ActionListener() {
 			@Override
