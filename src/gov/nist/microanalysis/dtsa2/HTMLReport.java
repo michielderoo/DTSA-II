@@ -137,9 +137,19 @@ public class HTMLReport {
    }
 
    public static String getBasePath() {
+	  
+	  File f = new File("DTSA-II Reports");
+	  if(f.exists() && f.isDirectory() && f.canWrite()) {
+		  return "DTSA-II Reports";
+	  }
+	   
       String tmp = Preferences.userNodeForPackage(HTMLReport.class).get(sfBASE_PATH, null);
       File tmpFile = tmp != null ? new File(tmp) : null;
       if((tmp == null) || !(tmpFile.exists() && tmpFile.isDirectory() && tmpFile.canWrite())) {
+		 
+		 return "DTSA-II Reports";
+		 
+		 /*
          final JFileChooser fc = new JFileChooser();
          fc.setDialogType(JFileChooser.SAVE_DIALOG);
          fc.setDialogTitle("Select a location to store " + DTSA2.APP_NAME + " reports,");
@@ -177,6 +187,7 @@ public class HTMLReport {
                   file.delete();
             }
          }
+		*/
       }
       return tmp;
    }
