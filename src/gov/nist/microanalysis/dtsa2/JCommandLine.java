@@ -145,6 +145,11 @@ public class JCommandLine
     * @param mBuffer
     */
    private void write(Style style, String mBuffer) {
+	   
+	   if(System.getProperty("dtsa2_output")!=null && System.getProperty("dtsa2_output").equals("on")) {
+		  System.out.println("DTSA: " + mBuffer);
+	   }
+	   
       try {
          final Document doc = getDocument();
          doc.insertString(doc.getLength(), mBuffer, style);

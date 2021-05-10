@@ -176,7 +176,7 @@ import gov.nist.microanalysis.dtsa2.JCommandLine.JythonWorker;
  * @version 1.0
  */
 
-public class MainFrame extends JFrame {
+public class MainHeadless {
 
 	static private class RecentFile extends File {
 
@@ -387,7 +387,7 @@ public class MainFrame extends JFrame {
 			try {
 				jTextPane_Log = createReportPage(DTSA2.getReport().getFile());
 			} catch (final IOException e) {
-				ErrorDialog.createErrorMessage(MainFrame.this, "Error creating report", e);
+				//ErrorDialog.createErrorMessage(MainHeadless.this, "Error creating report", e);
 				throw new Error(e);
 			}
 		return jTextPane_Log;
@@ -488,32 +488,16 @@ public class MainFrame extends JFrame {
 	}
 
 	// Construct the frame
-	public MainFrame() {
+	public MainHeadless() {
 		super();
-		enableEvents(AWTEvent.WINDOW_EVENT_MASK);
-		setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+		//enableEvents(AWTEvent.WINDOW_EVENT_MASK);
+		//setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
 		try {
 			initialize();
 			otherInit();
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
-		// Set the size of the window...
-		if (!System.getProperty("os.name").toLowerCase().startsWith("mac os x")) {
-			final Preferences userPref = Preferences.userNodeForPackage(MainFrame.class);
-			{
-				final Rectangle bounds = getBounds();
-				final int top = userPref.getInt(POSITION_TOP, (int) bounds.getX());
-				final int left = userPref.getInt(POSITION_LEFT, (int) bounds.getY());
-				final int pos_width = Math.max(userPref.getInt(POSITION_WIDTH, 0), (15 * 1024) / 16);
-				final int pos_height = Math.max(userPref.getInt(POSITION_HEIGHT, 0), (15 * 768) / 16);
-				setLocation(top, left);
-				setPreferredSize(new Dimension(pos_width, pos_height));
-				final int location = Math.max(userPref.getInt(SPLITTER_POSITION, pos_height / 3), 100);
-				jSplitPane_MainVert.setDividerLocation(location);
-			}
-		} else
-			setExtendedState(MAXIMIZED_BOTH);
 	}
 
 	/**
@@ -530,7 +514,7 @@ public class MainFrame extends JFrame {
 			try {
 				SwingUtilities.invokeAndWait(as);
 			} catch (final Exception e) {
-				ErrorDialog.createErrorMessage(MainFrame.this, DTSA2.APP_NAME, e);
+				//ErrorDialog.createErrorMessage(MainHeadless.this, DTSA2.APP_NAME, e);
 			}
 	}
 
@@ -569,7 +553,7 @@ public class MainFrame extends JFrame {
 		mi.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				DTSA2.getReport().openInBrowser(MainFrame.this);
+				//DTSA2.getReport().openInBrowser(MainHeadless.this);
 			}
 
 		});
@@ -637,7 +621,7 @@ public class MainFrame extends JFrame {
 					assert body != null;
 				}
 				if (mSessionStarted != null) {
-					final Preferences userPref = Preferences.userNodeForPackage(MainFrame.class);
+					final Preferences userPref = Preferences.userNodeForPackage(MainHeadless.class);
 					final boolean trixy = !DTSA2.getRevision(DTSA2.class)
 							.equals(userPref.get(PREVIOUS_TRIXY_VERSION, "none"));
 					final boolean epq = !DTSA2.getRevision(EPQException.class)
@@ -654,8 +638,8 @@ public class MainFrame extends JFrame {
 						userPref.put(PREVIOUS_TRIXY_VERSION, DTSA2.getRevision(DTSA2.class));
 						userPref.put(PREVIOUS_EPQ_VERSION, DTSA2.getRevision(EPQException.class));
 					}
-					if (DTSA2.INCLUDE_USER_GROUP)
-						JoinUserGroupDialog.doSignUp(MainFrame.this);
+					//if (DTSA2.INCLUDE_USER_GROUP)
+					//	JoinUserGroupDialog.doSignUp(MainHeadless.this);
 					mSessionStarted = null;
 				}
 				final String mark = "<A NAME=\"ITEM_" + Long.toHexString(++mLastMark) + "\" />\n";
@@ -693,7 +677,7 @@ public class MainFrame extends JFrame {
 				sb.append("<p>Caption: " + caption);
 			appendHTML(sb.toString());
 		} catch (final Exception e) {
-			ErrorDialog.createErrorMessage(this, "Error adding image to report", e);
+			System.out.println("DTSA2: Error adding image to report");
 		}
 	}
 
@@ -751,7 +735,7 @@ public class MainFrame extends JFrame {
 	}
 
 	private void otherInit() {
-		final Preferences userPref = Preferences.userNodeForPackage(MainFrame.class);
+		final Preferences userPref = Preferences.userNodeForPackage(MainHeadless.class);
 		try {
 			jKLMTreePanel.setElement(Element.byAtomicNumber(userPref.getInt("KLMDialog\\Atomic Number", 6)));
 		} catch (final EPQException e) {
@@ -879,7 +863,7 @@ public class MainFrame extends JFrame {
 							sel.add(obj);
 						mDataManager.setSelected(sel);
 						updateDisplayedSpectra();
-						MainFrame.this.jStatusBar_Main.setText(mDataManager.getSelectedCount() + " spectra selected.");
+						MainHeadless.this.jStatusBar_Main.setText(mDataManager.getSelectedCount() + " spectra selected.");
 					} finally {
 						mInside = false;
 					}
@@ -1014,7 +998,7 @@ public class MainFrame extends JFrame {
 					final URL url = new URL("http://www.jython.org/jythonbook/en/1.0/index.html");
 					Desktop.getDesktop().browse(url.toURI());
 				} catch (final Exception e) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Open Jython web site", e);
+					//ErrorDialog.createErrorMessage(MainHeadless.this, "Open Jython web site", e);
 				}
 			}
 		});
@@ -1028,7 +1012,7 @@ public class MainFrame extends JFrame {
 					final URL url = new URL("http://docs.python.org/2/");
 					Desktop.getDesktop().browse(url.toURI());
 				} catch (final Exception e) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Open Python tutorial", e);
+					//ErrorDialog.createErrorMessage(MainHeadless.this, "Open Python tutorial", e);
 				}
 			}
 		});
@@ -1049,7 +1033,7 @@ public class MainFrame extends JFrame {
 					final URL url = new URL("http://probesoftware.com/smf/index.php?board=32.0");
 					Desktop.getDesktop().browse(url.toURI());
 				} catch (final Exception e) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Open DTSA-II Forum", e);
+					//ErrorDialog.createErrorMessage(MainHeadless.this, "Open DTSA-II Forum", e);
 				}
 			}
 		});
@@ -1060,7 +1044,7 @@ public class MainFrame extends JFrame {
 			jMenuItem_HelpUserGroup.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					JoinUserGroupDialog.launchSignUp(MainFrame.this);
+					//JoinUserGroupDialog.launchSignUp(MainHeadless.this);
 				}
 			});
 		}
@@ -1187,7 +1171,7 @@ public class MainFrame extends JFrame {
 		jMenuItem_OpenInBrowser.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				DTSA2.getReport().openInBrowser(MainFrame.this);
+				//DTSA2.getReport().openInBrowser(MainHeadless.this);
 			}
 		});
 
@@ -1345,11 +1329,13 @@ public class MainFrame extends JFrame {
 		jMenuItem_ImportIntoDB.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				final ImportDialog id = new ImportDialog(MainFrame.this, DTSA2.getSession());
+				/*
+				final ImportDialog id = new ImportDialog(MainHeadless.this, DTSA2.getSession());
 				id.setDetector(AppPreferences.getInstance().getDefaultDetector());
-				id.setLocationRelativeTo(MainFrame.this);
+				id.setLocationRelativeTo(MainHeadless.this);
 				id.setVisible(true);
 				appendHTML(id.getReport());
+				*/
 			}
 		});
 
@@ -1361,7 +1347,7 @@ public class MainFrame extends JFrame {
 				final Session ses = DTSA2.getSession();
 				final SearchWizard sw = new SearchWizard(ses);
 				sw.setModal(true);
-				sw.setLocationRelativeTo(MainFrame.this);
+				//sw.setLocationRelativeTo(MainHeadless.this);
 				sw.setVisible(true);
 				final HTMLList list = new HTMLList();
 				for (final ISpectrumData spec : sw.getSpectra()) {
@@ -1399,7 +1385,7 @@ public class MainFrame extends JFrame {
 		jMenuFile_Exit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				MainFrame.this.setVisible(false);
+				//MainHeadless.this.setVisible(false);
 			}
 		});
 		jMenu_File.addSeparator();
@@ -1484,10 +1470,10 @@ public class MainFrame extends JFrame {
 		// jMenuBar_Main.add(jMenu_PlugIn);
 		jMenuBar_Main.add(jMenu_Help);
 
-		setJMenuBar(jMenuBar_Main);
+		//setJMenuBar(jMenuBar_Main);
 
-		setSize(new Dimension(642, 429));
-		setTitle(DTSA2.APP_NAME + " - Power Tools for Microanalysis");
+		//setSize(new Dimension(642, 429));
+		//setTitle(DTSA2.APP_NAME + " - Power Tools for Microanalysis");
 
 		// final CellConstraints cc = new CellConstraints();
 
@@ -1595,13 +1581,13 @@ public class MainFrame extends JFrame {
 					if (jTable_SpecComposition.getModel() instanceof CompositionTableModel) {
 						final CompositionTableModel model = (CompositionTableModel) jTable_SpecComposition.getModel();
 						final StringSelection ss = new StringSelection(model.toString());
-						getToolkit().getSystemClipboard().setContents(ss, null);
+						//getToolkit().getSystemClipboard().setContents(ss, null);
 					}
 					if (jTable_SpecComposition.getModel() instanceof ParticleSignatureTableModel) {
 						final ParticleSignatureTableModel model = (ParticleSignatureTableModel) jTable_SpecComposition
 								.getModel();
 						final StringSelection ss = new StringSelection(model.toString());
-						getToolkit().getSystemClipboard().setContents(ss, null);
+						//getToolkit().getSystemClipboard().setContents(ss, null);
 					}
 
 				}
@@ -1612,13 +1598,13 @@ public class MainFrame extends JFrame {
 					if (jTable_SpecComposition.getModel() instanceof CompositionTableModel) {
 						final CompositionTableModel model = (CompositionTableModel) jTable_SpecComposition.getModel();
 						final StringSelection ss = new StringSelection(model.toHTML());
-						getToolkit().getSystemClipboard().setContents(ss, null);
+						//getToolkit().getSystemClipboard().setContents(ss, null);
 					}
 					if (jTable_SpecComposition.getModel() instanceof ParticleSignatureTableModel) {
 						final ParticleSignatureTableModel model = (ParticleSignatureTableModel) jTable_SpecComposition
 								.getModel();
 						final StringSelection ss = new StringSelection(model.toHTML());
-						getToolkit().getSystemClipboard().setContents(ss, null);
+						//getToolkit().getSystemClipboard().setContents(ss, null);
 					}
 				}
 			});
@@ -1680,7 +1666,7 @@ public class MainFrame extends JFrame {
 					}
 				if (sb.length() > 0) {
 					final StringSelection ss = new StringSelection(sb.toString());
-					getToolkit().getSystemClipboard().setContents(ss, ss);
+					//getToolkit().getSystemClipboard().setContents(ss, ss);
 				}
 			}
 		});
@@ -1749,7 +1735,7 @@ public class MainFrame extends JFrame {
 		final JScrollPane tab = new JScrollPane(getTextPane_Log());
 		addUtilityTab("Report", tab, "An HTML summary of this DTSA-II session");
 		{
-			final ImageIcon ii = new ImageIcon(MainFrame.class.getResource("python.png"));
+			final ImageIcon ii = new ImageIcon(MainHeadless.class.getResource("python.png"));
 			jTabbedPane_Utility.addTab("Command", ii, jPanel_Command,
 					"A command line for controlling DTSA-II in Python");
 		}
@@ -1818,8 +1804,8 @@ public class MainFrame extends JFrame {
 							if (success.size() > 0)
 								importSpectra(success.toArray(new ISpectrumData[success.size()]), true);
 							if (failed.size() > 0) {
-								ErrorDialog.createErrorMessage(MainFrame.this, "Drag-and-Drop",
-										"Unable to open " + failed.size() + " dropped files.", failed.toString());
+								//ErrorDialog.createErrorMessage(MainHeadless.this, "Drag-and-Drop",
+								//		"Unable to open " + failed.size() + " dropped files.", failed.toString());
 							}
 						}
 					}
@@ -1853,10 +1839,12 @@ public class MainFrame extends JFrame {
 		jSplitPane_MainVert.add(jTabbedPane_Utility, JSplitPane.BOTTOM);
 		jSplitPane_MainVert.setResizeWeight(0.5);
 
+		/*
 		final JPanel contentPane = (JPanel) this.getContentPane();
 		contentPane.setLayout(new BorderLayout());
 		contentPane.add(jStatusBar_Main, BorderLayout.SOUTH);
 		contentPane.add(jSplitPane_MainVert, BorderLayout.CENTER);
+		*/
 	}
 
 	/**
@@ -1903,22 +1891,27 @@ public class MainFrame extends JFrame {
 			jCommandLine_Main.setArchivalWriter(fw);
 			appendHTML("<h3>Command Line</h3><ul><li>Output file: <i>" + tf.getAbsolutePath() + "</i></li></ul>");
 		} catch (final IOException e) {
-			ErrorDialog.createErrorMessage(this, "Error creating the command line log", e);
+			//ErrorDialog.createErrorMessage(this, "Error creating the command line log", e);
+			System.out.println("DTSA2: Error creating the command line log");
 		}
 		jythonWorker.execute();
 		jStatusBar_Main.setText("Welcome to " + DTSA2.APP_NAME + " - " + DTSA2.getRevision(DTSA2.class) + " revision");
 	}
 
 	public SpectrumProperties doEditSpectrumProperties(Set<SpectrumProperties> sps, Session ses) {
-		final SpectrumPropertyPanel.PropertyDialog dlg = new SpectrumPropertyPanel.PropertyDialog(this, ses);
+		//final SpectrumPropertyPanel.PropertyDialog dlg = new SpectrumPropertyPanel.PropertyDialog(this, ses);
 		for (final SpectrumProperties sp : sps)
-			dlg.addSpectrumProperties(sp);
-		dlg.setLocationRelativeTo(this);
-		dlg.setVisible(true);
-		return dlg.getSpectrumProperties();
+			return sp;
+		
+		return null;
+			//dlg.addSpectrumProperties(sp);
+		//dlg.setLocationRelativeTo(this);
+		//dlg.setVisible(true);
+		//return dlg.getSpectrumProperties();
 	}
 
 	public ISpectrumData[] selectSpectraFromFiles() {
+		/*
 		final SpectrumFileChooser sfc = new SpectrumFileChooser(this, "Open spectrum files...");
 		final File dir = new File(DTSA2.getSpectrumDirectory());
 		sfc.getFileChooser().setCurrentDirectory(dir);
@@ -1928,6 +1921,7 @@ public class MainFrame extends JFrame {
 			DTSA2.updateSpectrumDirectory(sfc.getFileChooser().getCurrentDirectory());
 			return sfc.getSpectra();
 		}
+		*/
 		return null;
 	}
 
@@ -1980,7 +1974,8 @@ public class MainFrame extends JFrame {
 	 * Actions to perform when exiting the program...
 	 */
 	public void fileExit() {
-		final Preferences userPref = Preferences.userNodeForPackage(MainFrame.class);
+		/*
+		final Preferences userPref = Preferences.userNodeForPackage(MainHeadless.class);
 		{
 			final Rectangle bounds = getBounds();
 			userPref.putInt(POSITION_WIDTH, (int) bounds.getWidth());
@@ -1990,10 +1985,11 @@ public class MainFrame extends JFrame {
 			userPref.putInt(SPLITTER_POSITION, jSplitPane_MainVert.getDividerLocation());
 		}
 		userPref.putInt("KLMDialog\\Atomic Number", Element.elmH);
+		*/
 		if (mSessionStarted == null)
 			appendHTML("<p><b>Session Terminated:</b> " + DateFormat.getTimeInstance().format(new Date()) + "</p>");
 		performShutdownScript();
-		setVisible(false);
+		//setVisible(false);
 		System.exit(0);
 	}
 
@@ -2014,7 +2010,7 @@ public class MainFrame extends JFrame {
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				AppPreferences.editPreferences(MainFrame.this);
+				//AppPreferences.editPreferences(MainHeadless.this);
 				initDetectors();
 				updateDetector(null);
 			}
@@ -2023,14 +2019,16 @@ public class MainFrame extends JFrame {
 	}
 
 	public void toolsEditStandards() {
-		final StandardDatabaseEditor sdbe = new StandardDatabaseEditor(MainFrame.this, DTSA2.getStandardsDatabase(),
+		/*
+		final StandardDatabaseEditor sdbe = new StandardDatabaseEditor(MainHeadless.this, DTSA2.getStandardsDatabase(),
 				DTSA2.getSession());
-		sdbe.setLocationRelativeTo(MainFrame.this);
+		sdbe.setLocationRelativeTo(MainHeadless.this);
 		sdbe.setVisible(true);
 		if (sdbe.isOk() && sdbe.getDatabase().isModified()) {
 			DTSA2.updateStandardsDatabase(sdbe.getDatabase());
 			jStatusBar_Main.setText("Standards database updated.");
 		}
+		*/
 	}
 
 	/*
@@ -2049,10 +2047,12 @@ public class MainFrame extends JFrame {
 	 * Help -&gt; About menu item
 	 */
 	public void helpAbout() {
+		/*
 		final MainFrame_AboutBox dlg = new MainFrame_AboutBox(this);
 		dlg.setLocationRelativeTo(this);
 		dlg.setModal(true);
 		dlg.setVisible(true);
+		*/
 	}
 
 	public void helpOpenWebSite() {
@@ -2060,16 +2060,8 @@ public class MainFrame extends JFrame {
 			final URL url = new URL("http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html");
 			Desktop.getDesktop().browse(url.toURI());
 		} catch (final Exception e) {
-			ErrorDialog.createErrorMessage(this, "Open web site", e);
+			//ErrorDialog.createErrorMessage(this, "Open web site", e);
 		}
-	}
-
-	// Overridden so we can exit when window is closed
-	@Override
-	protected void processWindowEvent(WindowEvent e) {
-		super.processWindowEvent(e);
-		//if (e.getID() == WindowEvent.WINDOW_CLOSING) 
-			//fileExit();
 	}
 
 	/**
@@ -2087,6 +2079,7 @@ public class MainFrame extends JFrame {
 	}
 
 	public void fileOpenReport() {
+		/*
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
@@ -2095,7 +2088,7 @@ public class MainFrame extends JFrame {
 				jfc.addChoosableFileFilter(new SimpleFileFilter(new String[] { "html", }, "HTML Report File"));
 				jfc.setDialogTitle("Open " + DTSA2.APP_NAME + " report file");
 				jfc.setMultiSelectionEnabled(false);
-				final int option = jfc.showOpenDialog(MainFrame.this);
+				final int option = jfc.showOpenDialog(MainHeadless.this);
 				if (option == JFileChooser.APPROVE_OPTION)
 					try {
 						final File f = jfc.getSelectedFile();
@@ -2133,11 +2126,12 @@ public class MainFrame extends JFrame {
 
 						jPopupMenu_Tabs.add(mi);
 					} catch (final IOException e) {
-						ErrorDialog.createErrorMessage(MainFrame.this, "Open report", e);
+						ErrorDialog.createErrorMessage(MainHeadless.this, "Open report", e);
 					}
 			}
 		};
 		invokeCarefully(r);
+		*/
 	}
 
 	public void openEMSASpectrumString(String emsa, String title) throws EPQException  {
@@ -2161,34 +2155,9 @@ public class MainFrame extends JFrame {
 							new Date());
 					final DetectorCalibration dc = ses.getSuitableCalibration(det, ts);
 					if (dc instanceof EDSCalibration) {
-						boolean assign = SpectrumUtils.areCalibratedSimilar(dc.getProperties(), sd,
-								AppPreferences.DEFAULT_TOLERANCE);
 						if (!dontApplyToAll) {
-							if (!assign) {
-								final int opt = JOptionPane.showConfirmDialog(MainFrame.this,
-										"<html>The calibration of <i>" + sd.toString() + "</i><br>"
-												+ "does not seem to be similar to the default detector.<br><br>"
-												+ "Apply the default detector none the less?",
-										"Spectrum open", JOptionPane.YES_NO_CANCEL_OPTION);
-								if (opt == JOptionPane.CANCEL_OPTION) {
-									if ((j == 0) && (specs.length > 1))
-										if (JOptionPane.showConfirmDialog(MainFrame.this,
-												"Cancel all " + Integer.toString(specs.length) + " spectra?",
-												"File Open", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
-											break;
-									continue;
-								}
-								if (opt == JOptionPane.NO_OPTION)
-									if ((j == 0) && (specs.length > 1))
-										dontApplyToAll = JOptionPane.showConfirmDialog(MainFrame.this,
-												"Don't apply the default detector to all "
-														+ Integer.toString(specs.length) + " spectra?",
-												"File Open", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
-								assign = (opt == JOptionPane.YES_OPTION);
-							}
-							if (assign)
-								sd = SpectrumUtils
-										.applyEDSDetector(EDSDetector.createDetector(det, (EDSCalibration) dc), sd);
+							sd = SpectrumUtils
+									.applyEDSDetector(EDSDetector.createDetector(det, (EDSCalibration) dc), sd);
 						}
 					}
 				}
@@ -2251,6 +2220,7 @@ public class MainFrame extends JFrame {
 	 * Description
 	 */
 	public void fileImport() {
+		/*
 		final String dir = DTSA2.getSpectrumDirectory();
 		final JFileChooser fc = new JFileChooser(dir);
 		final SimpleFileFilter csvFF = new SimpleFileFilter(new String[] { "csv" }, "CSV Files");
@@ -2297,6 +2267,7 @@ public class MainFrame extends JFrame {
 					addSpectrum(es, true);
 				}
 		}
+		*/
 	}
 
 	public void writeErrorLog(String str) {
@@ -2305,11 +2276,12 @@ public class MainFrame extends JFrame {
 	}
 
 	public void toolsRenameSpectrum() {
+		/*
 		List<ISpectrumData> specs = jList_Spectrum.getSelectedValuesList();
 		if (specs.size() > 0) {
 			final Preferences userPref = Preferences.userRoot();
 			final String rule = userPref.get("RENAMER", "$PREV$ $COMP$ $E0$ $I0$ $I$");
-			RenameDialog rd = new RenameDialog(MainFrame.this, rule);
+			RenameDialog rd = new RenameDialog(MainHeadless.this, rule);
 			rd.setLocationRelativeTo(jList_Spectrum.getParent());
 			rd.setVisible(true);
 			if (rd.isOk()) {
@@ -2327,6 +2299,7 @@ public class MainFrame extends JFrame {
 			}
 			mDataManager.notifyUpdated();
 		}
+		*/
 	}
 
 	private static class RenameDialog extends JDialog {
@@ -2425,16 +2398,17 @@ public class MainFrame extends JFrame {
 	 * Tools-&gt;Make standard menu item
 	 */
 	public void toolsMakeStandard() {
+		/*
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
 				try {
 					final List<ISpectrumData> specs = getSelectedSpectra();
 					if (specs.size() > 0) {
-						final MakeStandardDialog msd = new MakeStandardDialog(MainFrame.this, DTSA2.getSession());
+						final MakeStandardDialog msd = new MakeStandardDialog(MainHeadless.this, DTSA2.getSession());
 						for (final ISpectrumData sd : specs)
 							msd.addSpectrum(sd);
-						msd.setLocationRelativeTo(MainFrame.this);
+						msd.setLocationRelativeTo(MainHeadless.this);
 						msd.setVisible(true);
 						if (msd.shouldSave()) {
 							final ISpectrumData res = msd.getResult();
@@ -2504,7 +2478,7 @@ public class MainFrame extends JFrame {
 									hl.append("</tr>\n");
 								}
 								hl.append("</table></p>");
-								final List<File> files = MainFrame.this.saveStandards(msd.getBundle());
+								final List<File> files = MainHeadless.this.saveStandards(msd.getBundle());
 								if (files.size() > 0) {
 									hl.append("<ul>\n");
 									for (File file : files)
@@ -2518,12 +2492,13 @@ public class MainFrame extends JFrame {
 					} else
 						throw new EPQException("Please select one or more spectra to convert into a standard.");
 				} catch (final EPQException e) {
-					JOptionPane.showMessageDialog(MainFrame.this, e.getMessage(), "Error creating a standard",
+					JOptionPane.showMessageDialog(MainHeadless.this, e.getMessage(), "Error creating a standard",
 							JOptionPane.INFORMATION_MESSAGE);
 				}
 			}
 		};
 		invokeCarefully(r);
+		*/
 	}
 
 	/**
@@ -2561,11 +2536,12 @@ public class MainFrame extends JFrame {
 	 * Tools-&gt;Quantify menu item
 	 */
 	public void toolsQuantificationAlien() {
+		/*
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				final QuantificationWizard wiz = new QuantificationWizard(MainFrame.this);
-				wiz.setLocationRelativeTo(MainFrame.this);
+				final QuantificationWizard wiz = new QuantificationWizard(MainHeadless.this);
+				wiz.setLocationRelativeTo(MainHeadless.this);
 				wiz.setSession(DTSA2.getSession());
 				if (wiz.showWizard() == JWizardDialog.FINISHED) {
 					final List<ISpectrumData> resSpectra = wiz.getResultSpectra();
@@ -2583,7 +2559,7 @@ public class MainFrame extends JFrame {
 			}
 		};
 		invokeCarefully(r);
-
+		*/
 	}
 
 	void jButtonAll_actionPerformed(ActionEvent e) {
@@ -2655,6 +2631,7 @@ public class MainFrame extends JFrame {
 	 * File -&gt; Save As menu item
 	 */
 	public void fileSaveAs() {
+		/*
 		final HTMLList list = new HTMLList();
 		list.setHeader("Saving spectra");
 		int errCx = 0;
@@ -2695,9 +2672,11 @@ public class MainFrame extends JFrame {
 										+ (errCx == 1 ? " spectrum" : " spectra") + " not written successfully.",
 								"<html>" + list.toString());
 		}
+		*/
 	}
 
 	public void fileSaveSelected() {
+		/*
 		final HTMLList list = new HTMLList();
 		list.setHeader("Saving spectra");
 		int errCx = 0;
@@ -2730,6 +2709,7 @@ public class MainFrame extends JFrame {
 									"<html>" + list.toString());
 			}
 		}
+		*/
 	}
 
 	/**
@@ -2739,6 +2719,7 @@ public class MainFrame extends JFrame {
 	 * @return true on success, false otherwise.
 	 */
 	public boolean saveStandardAsEMSA(ISpectrumData sd) {
+		/*
 		final String fn = normalizeFilename(sd.toString());
 		final String dir = DTSA2.getSpectrumDirectory();
 		final JFileChooser jfc = new JFileChooser(dir);
@@ -2747,7 +2728,7 @@ public class MainFrame extends JFrame {
 		jfc.setFileFilter(emsa);
 		jfc.setSelectedFile(new File(dir, fn));
 		jfc.setDialogTitle("Save " + fn + " as...");
-		final int option = jfc.showSaveDialog(MainFrame.this);
+		final int option = jfc.showSaveDialog(MainHeadless.this);
 		if (option == JFileChooser.APPROVE_OPTION) {
 			File res = jfc.getSelectedFile();
 			if (res != null) {
@@ -2760,11 +2741,14 @@ public class MainFrame extends JFrame {
 					sd.getProperties().setTextProperty(SpectrumProperties.SourceFile, path);
 					return true;
 				} catch (final Exception ex) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Error saving spectrum", ex);
+					ErrorDialog.createErrorMessage(MainHeadless.this, "Error saving spectrum", ex);
 				}
 			}
 		}
 		return false;
+		*/
+		
+		return true;
 	}
 
 	/**
@@ -2779,6 +2763,7 @@ public class MainFrame extends JFrame {
 	}
 
 	public File saveStandard(Element elm, StandardBundle bundle) {
+		/*
 		ISpectrumData sd = bundle.getStandard();
 		final String fn = normalizeFilename(elm.toAbbrev() + " std - " + sd.toString().replace(" std", ""));
 		final String dir = DTSA2.getSpectrumDirectory();
@@ -2788,7 +2773,7 @@ public class MainFrame extends JFrame {
 		jfc.setFileFilter(std);
 		jfc.setSelectedFile(new File(dir, fn));
 		jfc.setDialogTitle("Save " + fn + " as...");
-		final int option = jfc.showSaveDialog(MainFrame.this);
+		final int option = jfc.showSaveDialog(MainHeadless.this);
 		if (option == JFileChooser.APPROVE_OPTION) {
 			File res = jfc.getSelectedFile();
 			if (res != null) {
@@ -2800,10 +2785,11 @@ public class MainFrame extends JFrame {
 					bundle.write(res);
 					return res;
 				} catch (final Exception ex) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Error saving spectrum", ex);
+					ErrorDialog.createErrorMessage(MainHeadless.this, "Error saving spectrum", ex);
 				}
 			}
 		}
+		*/
 		return null;
 	}
 
@@ -2833,13 +2819,14 @@ public class MainFrame extends JFrame {
 	}
 
 	public void centerDialog(Dialog d) {
-		d.setLocationRelativeTo(this);
+		//d.setLocationRelativeTo(this);
 	}
 
 	/**
 	 * Process-&gt;SubSample menu item
 	 */
 	public void processSubSample() {
+		/*
 		if (mDataManager.getSelectedCount() > 0) {
 			final NoisyDialog nd = new NoisyDialog(this, "Sub-sample settings", true);
 			nd.setLocationRelativeTo(this);
@@ -2873,6 +2860,7 @@ public class MainFrame extends JFrame {
 					appendHTML(list.toString());
 			}
 		}
+		*/
 	}
 
 	/**
@@ -2947,6 +2935,7 @@ public class MainFrame extends JFrame {
 	 * File-&gt;BatchExportCSV menu item
 	 */
 	public void fileBatchExportCSV() {
+		/*
 		final JFileChooser fc = new JFileChooser();
 		fc.setDialogTitle("Specify a directory into which to export the spectra.");
 		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -2971,13 +2960,14 @@ public class MainFrame extends JFrame {
 			if (list.size() > 0)
 				appendHTML(list.toString());
 		}
+		*/
 	}
 
 	/**
 	 * File-&gt;Batch Export EMSA menu item
 	 */
 	public void fileBatchExportEMSA() {
-
+		/*
 		final JFileChooser fc = new JFileChooser();
 		fc.setDialogTitle("Specify a directory into which to export the spectra.");
 		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -3008,10 +2998,11 @@ public class MainFrame extends JFrame {
 				}
 			if (list.size() > 0) {
 				appendHTML(list.toString());
-				ErrorDialog.createErrorMessage(MainFrame.this, "Batch export",
+				ErrorDialog.createErrorMessage(MainHeadless.this, "Batch export",
 						"There was one or more errors batch exporting spectra.", list.toString());
 			}
 		}
+		*/
 	}
 
 	private List<ISpectrumData> getSelectedSpectra() {
@@ -3061,7 +3052,7 @@ public class MainFrame extends JFrame {
 						sb.append(", ");
 					}
 					sb.delete(sb.length() - 2, sb.length());
-					JOptionPane.showMessageDialog(this, sb.toString(), "Background fit", JOptionPane.WARNING_MESSAGE);
+					//JOptionPane.showMessageDialog(this, sb.toString(), "Background fit", JOptionPane.WARNING_MESSAGE);
 					break;
 				}
 				Composition comp = sp.getCompositionWithDefault(SpectrumProperties.StandardComposition, null);
@@ -3126,6 +3117,7 @@ public class MainFrame extends JFrame {
 	}
 
 	public void processLinearizeEnergyAxis() {
+		/*
 		final List<ISpectrumData> selected = getSelectedSpectra();
 		if (!selected.isEmpty()) {
 			final RescaleDialog rd = new RescaleDialog(this, "Linearize energy axis", true);
@@ -3137,6 +3129,7 @@ public class MainFrame extends JFrame {
 					addSpectrum(SpectrumUtils.linearizeSpectrum(sd, rd.getPolynomial(), rd.getChannelWidth()), true,
 							sd);
 		}
+		*/
 	}
 
 	public void processSmooth() {
@@ -3188,7 +3181,7 @@ public class MainFrame extends JFrame {
 				final FileNameExtensionFilter filter = new FileNameExtensionFilter("Python scripts", "py", "jy");
 				fc.setAcceptAllFileFilterUsed(true);
 				fc.setFileFilter(filter);
-				final Preferences userPref = Preferences.userNodeForPackage(MainFrame.class);
+				final Preferences userPref = Preferences.userNodeForPackage(MainHeadless.class);
 				final String path = userPref.get("ScriptPath", null);
 				if (path != null) {
 					final File f = new File(path);
@@ -3196,7 +3189,7 @@ public class MainFrame extends JFrame {
 						fc.setCurrentDirectory(f);
 				}
 				mResult = null;
-				if (fc.showOpenDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION) {
+				if (true) {
 					mResult = fc.getSelectedFile();
 					mPreviousScript = fc.getSelectedFile();
 					userPref.put("ScriptPath", mPreviousScript.getParent());
@@ -3244,7 +3237,6 @@ public class MainFrame extends JFrame {
 		try {
 			jCommandLine_Main.run(f);
 		} catch (final Throwable e) {
-			System.out.println("DTSA Error " + e.toString());
 			jCommandLine_Main.writeError(e.toString());
 		}
 		mPreviousScript = f;
@@ -3265,12 +3257,8 @@ public class MainFrame extends JFrame {
 
 	public void runPythonScript(String filename) {
 		final File f = new File(filename);
-		System.out.println("runPythonScript " + f.canRead() + ":" + f.getAbsolutePath());
-
-		if (f.canRead()) {
-			jCommandLine_Main.writeOutput("runPythonScript");
+		if (f.canRead())
 			runPythonScript(f);
-		}
 		else
 			jCommandLine_Main.writeError("ERROR: " + filename + " can not be read.");
 	}
@@ -3282,7 +3270,8 @@ public class MainFrame extends JFrame {
 	 * @return Composition
 	 */
 	public Composition editMaterial(Composition comp) {
-		return MaterialsCreator.editMaterial(MainFrame.this, comp, DTSA2.getSession(), false);
+		//return MaterialsCreator.editMaterial(MainHeadless.this, comp, DTSA2.getSession(), false);
+		return null;
 	}
 
 	/**
@@ -3293,7 +3282,8 @@ public class MainFrame extends JFrame {
 	 */
 	public Composition createMaterial() {
 		// MaterialsCreator is already thread savvy
-		return MaterialsCreator.createMaterial(MainFrame.this, DTSA2.getSession(), false);
+		//return MaterialsCreator.createMaterial(MainHeadless.this, DTSA2.getSession(), false);
+		return null;
 	}
 
 	/**
@@ -3327,10 +3317,11 @@ public class MainFrame extends JFrame {
 	 * which thread it was called from.
 	 */
 	public void toolsSimulationAlien() {
+		/*
 		final Runnable th = new Runnable() {
 			@Override
 			public void run() {
-				final SimulationWizard sw = new SimulationWizard(MainFrame.this);
+				final SimulationWizard sw = new SimulationWizard(MainHeadless.this);
 				centerDialog(sw);
 				sw.setVisible(true);
 				final ISpectrumData[] res = sw.getResults();
@@ -3341,17 +3332,19 @@ public class MainFrame extends JFrame {
 			}
 		};
 		invokeCarefully(th);
+		*/
 	}
 
 	/**
 	 * Executes the Calibration Alien in the EventDispatch thread.
 	 */
 	public void toolsCalibrationAlien() {
+		/*
 		final Runnable th = new Runnable() {
 			@Override
 			public void run() {
-				final CalibrationWizard cw = new CalibrationWizard(MainFrame.this);
-				final Object obj = MainFrame.this.jComboBox_Detector.getSelectedItem();
+				final CalibrationWizard cw = new CalibrationWizard(MainHeadless.this);
+				final Object obj = MainHeadless.this.jComboBox_Detector.getSelectedItem();
 				assert (obj instanceof DetectorProperties);
 				cw.setDetector((DetectorProperties) obj);
 				centerDialog(cw);
@@ -3362,44 +3355,48 @@ public class MainFrame extends JFrame {
 				}
 			}
 		};
-		final Object obj = MainFrame.this.jComboBox_Detector.getSelectedItem();
+		final Object obj = MainHeadless.this.jComboBox_Detector.getSelectedItem();
 		if (obj instanceof DetectorProperties)
 			invokeCarefully(th);
 		else {
 			final String msg = "Please specify which detector to calibrate using the \"Default Detector\" drop list box.";
-			ErrorDialog.createErrorMessage(MainFrame.this, "Calibration Alien", msg, msg);
+			ErrorDialog.createErrorMessage(MainHeadless.this, "Calibration Alien", msg, msg);
 		}
+		*/
 	}
 
 	public void toolsOptimizeAlien() {
+		/*
 		final Runnable th = new Runnable() {
 			@Override
 			public void run() {
-				final Object obj = MainFrame.this.jComboBox_Detector.getSelectedItem();
+				final Object obj = MainHeadless.this.jComboBox_Detector.getSelectedItem();
 				if (obj instanceof DetectorProperties) {
 					final DetectorProperties dp = (DetectorProperties) obj;
 					final DetectorCalibration dc = DTSA2.getSession().getMostRecentCalibration(dp);
 					final EDSDetector det = EDSDetector.createDetector((DetectorProperties) obj, (EDSCalibration) dc);
-					final OptimizationWizard eow = new OptimizationWizard(MainFrame.this, det, DTSA2.getSession());
+					final OptimizationWizard eow = new OptimizationWizard(MainHeadless.this, det, DTSA2.getSession());
 					centerDialog(eow);
 					eow.setVisible(true);
 					if (eow.isFinished()) {
 						appendHTML(eow.toHTML(DTSA2.getReport().getFile().getParentFile()));
 						for (final ISpectrumData spec : eow.simulateSpectra())
-							MainFrame.this.addSpectrum(spec, true);
+							MainHeadless.this.addSpectrum(spec, true);
 					}
 				}
 			}
 		};
 		invokeCarefully(th);
+		*/
 	}
 
 	public void toolsQCAlien() {
+		/*
 		final Runnable th = new Runnable() {
 			@Override
 			public void run() {
-				final QCWizard cw = new QCWizard(MainFrame.this, DTSA2.getSession());
-				final Object obj = MainFrame.this.jComboBox_Detector.getSelectedItem();
+				final QCWizard cw = new QCWizard(MainHeadless.this, DTSA2.getSession());
+				final Object obj = MainHeadless.this.jComboBox_Detector.getSelectedItem();
 				assert (obj instanceof DetectorProperties);
 				cw.setDetector((DetectorProperties) obj);
 				centerDialog(cw);
@@ -3408,16 +3405,18 @@ public class MainFrame extends JFrame {
 					appendHTML(cw.getHTMLResults());
 			}
 		};
-		final Object obj = MainFrame.this.jComboBox_Detector.getSelectedItem();
+		final Object obj = MainHeadless.this.jComboBox_Detector.getSelectedItem();
 		if (obj instanceof DetectorProperties)
 			invokeCarefully(th);
 		else {
 			final String msg = "Please specify which detector to calibrate using the \"Default Detector\" drop list box.";
-			ErrorDialog.createErrorMessage(MainFrame.this, "Calibration Alien", msg, msg);
+			ErrorDialog.createErrorMessage(MainHeadless.this, "Calibration Alien", msg, msg);
 		}
+		*/
 	}
 
 	public void toolsEditMaterial() {
+		/*
 		Composition mat = null;
 		final List<ISpectrumData> specs = getSelectedSpectra();
 		if (specs.size() > 0) {
@@ -3449,9 +3448,11 @@ public class MainFrame extends JFrame {
 			appendHTML(sb.toString());
 			mDataManager.notifyUpdated();
 		}
+		*/
 	}
 
 	public void reportAnnotation() {
+		/*
 		final String res = AnnotationDialog.getAnnotation(this);
 		if (res != null) {
 			final StringBuffer sb = new StringBuffer();
@@ -3460,6 +3461,7 @@ public class MainFrame extends JFrame {
 			sb.append("</font></p>");
 			appendHTML(sb.toString());
 		}
+		*/
 	}
 
 	public void reportSpectra() {
@@ -3476,7 +3478,8 @@ public class MainFrame extends JFrame {
 			sb.append("\" alt=\"Spectrum Display\" /></p>");
 			appendHTML(sb.toString());
 		} catch (final Exception e) {
-			ErrorDialog.createErrorMessage(this, "Error adding spectra to report", e);
+			//ErrorDialog.createErrorMessage(this, "Error adding spectra to report", e);
+			System.out.println("DTSA2: Error adding spectra to report");
 		}
 	}
 

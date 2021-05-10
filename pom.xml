@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>gov.nist.microanalysis</groupId>
   <artifactId>dtsa2</artifactId>
-  <version>1.12.1</version>
+  <version>parc</version>
   <name>NIST DTSA-II</name>
   <description>An application for analysis of electron excited X-ray spectra.</description>
   <build>
@@ -89,5 +89,14 @@
         <artifactId>jxmapviewer2</artifactId>
         <version>2.4</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>epq</artifactId>
+      <version>parc</version>
+    </dependency>
   </dependencies>
- </project>
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+</project>
