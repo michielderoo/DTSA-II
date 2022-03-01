@@ -2,10 +2,10 @@
 # Name: 	startUp.py
 # Purpose:	This script initializes the SEMantics library.   It optionally connects to the
 #	TESCAN SEM and provides a mechanism to control the SEM, collect data and process SEM data.
-# Modified: 3-Nov-2017
+# Modified: 18-May-2020
 # Set the SITE to account for site specific hardware variations
-NIST, MCCRONE, PNNL, SHAFER, ORNL = ( "NIST", "McCRONE", "PNNL", "SHAFER", "ORNL" )
-SITE = NIST
+NIST, MCCRONE, PNNL, PAS, AEM, ORNL = ( "NIST", "McCRONE", "PNNL", "PAS", "AEM", "ORNL" )
+SITE = ORNL
 
 if (SITE == NIST) and (jl.System.getProperty('sun.java.command') == u'gov.nist.microanalysis.dtsa2.DTSA2'):
 	print "JAR paths based on workspace."
@@ -77,10 +77,20 @@ defaultArchivePath = None
 if SITE==NIST:
 	rootPath = "D:"
 	defaultArchivePath = "P:"
-elif SITE==PNNL:
+elif (SITE==PNNL) or (SITE==PAS) or (SITE==AEM):
 	rootPath = "C:\\Users\\Tescan\\My Documents\\Data"
+elif SITE==ORNL:
+    rootPath = "C:\\Users\\Tescan\\Data"                                
 else:  # SITE==MCCRONE:
 	rootPath = "C:\\Data"
+
+# Configure this to determine which field images to save.
+#   Image 1 => 0x1, Image 2 => 0x2, Image N => 2^(N-1) and Image 1+2 = 0x1 + 0x2 etc.
+SAVE_FIELD_MASK = (0x0 if (SITE == AEM) or (SITE == PAS) else 0x3)
+# Default images to save using collectImages(...)
+DEF_IMAGE_MASK = 0x3
+# Mask to use for other functions that save images 
+SAVE_IMAGE_MASK = 0x3
 
 if SITE<>PNNL:
 	setDefaultPath("%s\\Daily\\%s" % (rootPath, jtext.SimpleDateFormat("dd-MMM-yyyy").format(ju.Date())))
@@ -103,7 +113,7 @@ defaultStds = { "C": "C std.msa", "Al": "Al std.msa", "Na": "NaCl std.msa", "Cl"
 #		 "Ag" : "Ag std.msa", "Au" : "Au std.msa", "La" : "LaF3 std.msa", "Pb" : "K227 std.msa"
 }
 
-if SITE==NIST:
+if (SITE==NIST) or (SITE==MCCRONE) or (SITE==ORNL):
 	availableDets = ( True, )*4 # False, False, False )
 else:
 	availableDets = ( True, )*3 # False, False, False )
@@ -138,7 +148,10 @@ _saverizeTh.start()
 connect = (jop.showConfirmDialog(MainFrame, "Connect to the TESCAN?", "Start-up Script", jop.YES_NO_OPTION) == jop.YES_OPTION)
 
 # Location of the Image Magick executables 'convert' and 'montage' 
-IMAGE_MAGICK = "C:\\Program Files\\ImageMagick-6.9.6-Q16"
+if SITE==ORNL:
+	IMAGE_MAGICK = "C:\\Program Files\\ImageMagick-6.9.9-Q16"
+else:
+	IMAGE_MAGICK = "C:\\Program Files\\ImageMagick-6.9.6-Q16"
 
 def pascalToTorr(pa):
 	return pa * 0.0075006
@@ -236,12 +249,19 @@ if connect:
 		time.sleep(30.0)
 		_pt.enablePeltier(defaultDetMask, True)
 	
-	def collectImages(name, fov=1.0, dims=(512, 512), dwell=4, subRaster=None, path=None, rotation=0.0, markCenter=False):
-		"""collectImages(name, fov=1.0, dims=(512, 512), dwell=4, subRaster=None, path=None, rotation=0.0, markCenter=False)
-		Collect and save images to a file named 'name' with the specified 'fov' (in mm) and image dimensions 'dims', scan speed 'dwell'.
-subRaster: limits the area from which image data is actually collected.  For example “subRaster = (10, 10, 111, 111) will collect a 100 x 100 pixel image starting at the upper-left corner coordinate (10, 10).
-rotation: image rotation in degrees
-markCenter: place a mark at the central pixel in the image"""
+	def collectImages(name, fov=1.0, dims=(512, 512), dwell=4, subRaster=None, path=None, rotation=0.0, markCenter=False, writeMask=DEF_IMAGE_MASK):
+		"""collectImages(
+			name,            # Base file name
+			fov=1.0,         # Field of view in mm
+			dims=(512, 512), # Image dimensions in pixels
+			dwell=4,         # Dwell index
+			subRaster=None,  # A rectangle within dims to limit the image
+			path=None,       # If path=None => defaultPath otherwise => path
+			rotation=0.0,    # Image rotation in degrees
+			markCenter=False,# Place a marker at the center of the image
+			writeMask=0xFF   # Which images to write 0x1 -> 1, 0x2 -> 2, 0x4 -> 3 0x3 -> 1 & 2
+		)
+		Collect and save images to a file named 'name' with the specified 'fov' (in mm) and image dimensions 'dims', scan speed 'dwell'."""		
 		global terminated
 		if terminated:
 			return
@@ -260,8 +280,8 @@ markCenter: place a mark at the central pixel in the image"""
 				bi.applyCenterCrossHair()
 		path = (path if path else defaultPath)
 		if name:
-			write(res, name, path)
-			logImage(path, name, "Images", fov, dims, dwell, sem.beamEnergy)
+			write(res, name, path, writeMask=writeMask)
+			logImage(path, name, "Images", fov, dims, dwell, sem.beamEnergy/1000.0)
 		# report("<p>Collected images <i>%s</i> - %0.1f &mu;m FOV %d &times; %d at dwell %d</p>" % (name, 1000.0*fov, dims[0], dims[1], dwell))
 		return res
 	
@@ -351,43 +371,43 @@ markCenter: place a mark at the central pixel in the image"""
 		finally:
 			turnOff()
 			
-	def moveTo(pt, xyOnly=False):
-		"""moveTo(pt, xyOnly=false) - (Works)
-		Moves the stage to the specified stage point.  If pt is a ISpectrumData derived object then the stage /
+	def moveTo(pnt, xyOnly=False):
+		"""moveTo(pnt, xyOnly=false) - (Works)
+		Moves the stage to the specified stage point.  If pnt is a ISpectrumData derived object then the stage /
 is moved to the StagePosition associated with the spectrum."""
 		global terminated
 		if terminated:
 			return
-		if isinstance(pt, epq.ISpectrumData):
-			pt = pt.getProperties().getObjectWithDefault(epq.SpectrumProperties.StagePosition, None)
-		if not pt:
+		if isinstance(pnt, epq.ISpectrumData):
+			pnt = pnt.getProperties().getObjectWithDefault(epq.SpectrumProperties.StagePosition, None)
+		if not pnt:
 			return
 		if xyOnly:
 			newPt = epq.StageCoordinate()
-			newPt.set(X_AXIS, pt.get(X_AXIS))
-			newPt.set(Y_AXIS, pt.get(Y_AXIS))
+			newPt.set(X_AXIS, pnt.get(X_AXIS))
+			newPt.set(Y_AXIS, pnt.get(Y_AXIS))
 			_stg.setPosition(newPt)
 			time.sleep(0.1)
 			while (_stg.getStatus() == _stg.StageStatus.MOVING) and (not terminated):
 				time.sleep(0.1)
 		else:
 			start = epq.StageCoordinate(position())
-			if pt.get(Z_AXIS) > start.get(Z_AXIS):
+			if pnt.get(Z_AXIS) > start.get(Z_AXIS):
 				# Move to larger Z first
-				start.set(Z_AXIS, pt.get(Z_AXIS))
+				start.set(Z_AXIS, pnt.get(Z_AXIS))
 				_stg.setPosition(start)
 				time.sleep(0.1)
 				while (_stg.getStatus() == _stg.StageStatus.MOVING) and (not terminated):
 					time.sleep(0.1)
-			newPt = epq.StageCoordinate(pt)
-			newPt.set(Z_AXIS, jl.Math.max(pt.get(Z_AXIS), start.get(Z_AXIS)))
+			newPt = epq.StageCoordinate(pnt)
+			newPt.set(Z_AXIS, jl.Math.max(pnt.get(Z_AXIS), start.get(Z_AXIS)))
 			_stg.setPosition(newPt)
 			time.sleep(0.1)
 			while (_stg.getStatus() == _stg.StageStatus.MOVING) and (not terminated):
 				time.sleep(0.1)
-			if newPt.get(Z_AXIS) != pt.get(Z_AXIS):
+			if newPt.get(Z_AXIS) != pnt.get(Z_AXIS):
 				# Move closer last
-				_stg.setPosition(pt)
+				_stg.setPosition(pnt)
 				time.sleep(0.1)
 				while (_stg.getStatus() == _stg.StageStatus.MOVING) and (not terminated):
 					time.sleep(0.1)
@@ -727,13 +747,13 @@ fov: An optional field of view width to which to set the SEM imaging while colle
 		try:
 			if pc:
 				pcb=updatedPC(interval=0)
-			collectImages(baseName, fov, dims=(1024,1024),dwell=5,path=path)
+			collectImages(baseName, fov, dims=(1024,1024),dwell=5,path=path, writeMask=SAVE_IMAGE_MASK)
 			_ts.setViewField(fov)
 			_ts.scStopScan()
-			for i, pt in enumerate(pts):
-				_ts.scSetBeamPosition(pt[0],pt[1])
+			for i, pnt in enumerate(pts):
+				_ts.scSetBeamPosition(pnt[0],pnt[1])
 				time.sleep(0.1)
-				spec=collect2(acqTime, "%s[Pt %i](%0.3g,%0.3g)" % (baseName, i, pt[0],pt[1]), mode='L', pc=False, disp=disp, path=path, fov=None)
+				spec=collect2(acqTime, "%s[Pt %i](%0.3g,%0.3g)" % (baseName, i, pnt[0],pnt[1]), mode='L', pc=False, disp=disp, path=path, fov=None)
 				if pc and spec:
 					sp = spec.getProperties()
 					sp.setNumericProperty(sp.FaradayBegin, pcb.average())
@@ -809,8 +829,8 @@ fov: An optional field of view width to which to set the SEM imaging while colle
 		global lastPCUpdate, lastPCValue
 		return globals().has_key("faraday") and ((lastPCUpdate == None) or (abs(time.time() - lastPCUpdate) > interval))
 	
-	def updatedPC(interval=300):
-		"""updatedPC(interval=300) - Works
+	def updatedPC(interval=1800):
+		"""updatedPC([interval=1800]) - Works
 		Returns a measurement of the probe current, updating the measurement if more than 'interval' seconds have elapsed."""
 		global lastPCUpdate, lastPCValue
 		if shouldUpdatePC(interval):
@@ -848,12 +868,12 @@ index of 0 loads the most recent, index=1, 2, 3,... first, second third...., ind
 	for f in os.listdir(path): 
 		ff = path+os.path.sep+f 
 		if os.path.isdir(ff) and f.startswith("Analysis "):
-			dirs.append(f)
+			dirs.append(f)                   
 	dirs.sort()
 	if index<=0:
 		return Zepp(path+os.path.sep+dirs[-1+index]+os.path.sep+dataFile)
 	else:
-		return Zepp(path+os.path.sep+dirs[index-1]+os.path.sep+dataFile)
+		return Zepp(path+os.path.sep+dirs[index-1]+os.path.sep+dataFile)        
 		
 class Zepp:
 	"""The Zepp class is designed as a wrapper around a Zeppelin (AFA) data set.
@@ -906,19 +926,19 @@ Process a spectrum image into maps.  vecs is constructed using buildVectors(...)
 		fn = "P%0.5d%s" % (partNum , ("" if not postFix else " - "+postFix), )
 		SItoMap(fn, vecs, path=self.getRelocated())
 
-	def SItoSum(self, partNum, mask=None, subSample=4):
+	def SItoSum(self, partNum, mask=None, subSample=4, postFix=None):
 		"""z.SItoMap(partNum, [mask=None],[subSample=4])
 Process a spectrum image into a masked sum. see help(SItoSum)"""
 		fn = "P%0.5d%s" % (partNum , ("" if not postFix else " - "+postFix), )
 		SItoSum(fn, mask, subSample, path=self.getRelocated())
 		
-	def SItoSums(self, partNum, masks=None, subSample=4):
+	def SItoSums(self, partNum, masks=None, subSample=4, postFix=None):
 		"""z.SItoMap(partNum, [mask=None],[subSample=4])
 Process a spectrum image into masked sum spectra. see help(SItoSums)"""
 		fn = "P%0.5d%s" % (partNum , ("" if not postFix else " - "+postFix), )
 		SItoSums(fn, mask, subSample, path=self.getRelocated())
 
-	def SItoRPL(self, partNum):
+	def SItoRPL(self, partNum, postFix=None):
 		"""z.SItoRPL(partNum)
 Process a spectrum image into masked sum spectra. see help(SItoSums)"""
 		fn = "P%0.5d%s" % (partNum , ("" if not postFix else " - "+postFix), )
@@ -1009,7 +1029,7 @@ Get the spectrum associated with the specified row number"""
 			rel = self.getRelocated().getAbsolutePath()
 			fn = "%0.5d" % (partNum , )
 			self.updatePC()
-			imgs=collectImages(fn, fov=fov, dims=dims, dwell=dwell, path=rel)
+			imgs=collectImages(fn, fov=fov, dims=dims, dwell=dwell, path=rel, writeMask=SAVE_IMAGE_MASK)
 			spec=collect2(liveTime, name=fn, fov=edsFov)
 			if spec:
 				props = spec.getProperties()
@@ -1029,28 +1049,28 @@ Get the spectrum associated with the specified row number"""
 			spec=collect2(liveTime, name=fn, fov=fov)
 			write(spec, fn, rel.getAbsolutePath() )
 			
-		def collectSI(self, partNum, fov, dwell=9, dims=(1024,1024), postFix=None):
+		def collectSI(self, partNum, fov, dwell=9, dims=(1024,1024), rotation=0.0, postFix=None):
 			"""z.collectSI(partNum, fov, dwell=9, dims=(1024,1024), postFix="")
 	Collects a spectrum image of a relocated particle 'partNum' with the specified field-of-view (fov), dims and dwell.
 	The images are saved in the RCA project directory under 'Relocated'"""			
 			path = self.getRelocated().getAbsolutePath()
 			fn = "P%0.5d%s" % (partNum , ("" if not postFix else " - "+postFix), )
-			collectSI(fn, fov, frameCount=1, dwell=dwell, dims=dims, path=path)
+			collectSI(fn, fov, frameCount=1, dwell=dwell, dims=dims, path=path, rotation=rotation)
 		
-		def collectImages(self, partNum, fov, dims=(512,512), dwell=6, postFix=None):
+		def collectImages(self, partNum, fov, dims=(512,512), dwell=6, postFix=None, markCenter=False, writeMask=SAVE_IMAGE_MASK):
 			"""z.collectImages(partNum, fov, dims=(512,512), dwell=5, postFix="")
 	Collects images of a relocated particle 'partNum' with the specified field-of-view (fov), dims and dwell.
 	The images are saved in the RCA project directory under 'Relocated'"""
 			path = self.getRelocated().getAbsolutePath()
 			fn = "%0.5d%s" % (partNum , (" - I" if not postFix else " - "+postFix), )
-			collectImages(fn, fov=fov, dims=dims, dwell=dwell, path=path)
+			collectImages(fn, fov=fov, dims=dims, dwell=dwell, path=path, writeMask=writeMask, markCenter=markCenter)
 			
-		def collectZoom(self, partNum, fov, dims=(512,512), dwell=6):
+		def collectZoom(self, partNum, fov, dims=(512,512), dwell=6, writeMask=SAVE_IMAGE_MASK):
 			"""z.collectImages(partNum, fov, dims=(512,512), dwell=5, postFix="")
 	Collects images of a relocated particle 'partNum' with the specified field-of-view (fov), dims and dwell.
 	The images are saved in the RCA project directory under 'Relocated'"""
 			for fv in [ fov, 0.1, 1.0]:
-				self.collectImages(partNum, fv, dims, dwell, "FOV = %g" % fv)
+				self.collectImages(partNum, fv, dims, dwell, "FOV = %g" % fv, markCenter=True, writeMask=writeMask)
 		
 		def moveTo(self, partNum):
 			"""z.moveTo(self, rowNum)
@@ -1389,7 +1409,7 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 						kr = self._vecs.getKRatios(spec)
 						props = spec.getProperties()
 						props.setKRatioProperty(epq.SpectrumProperties.KRatios, kr)
-						ps = epq.ParticleSignature(kr, [epq.Element.O])
+						ps = epq.ParticleSignature(kr, [epq.Element.C], [epq.Element.O])
 						props.setParticleSignatureProperty(epq.SpectrumProperties.ParticleSignature, ps)
 						props.setImageProperty(epq.SpectrumProperties.MicroImage, ps.createBarGraph(256,0.01))
 						props.setNumericProperty(epq.SpectrumProperties.RealTime, self._edsRealTime)
@@ -1503,7 +1523,7 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 					mg.draw(rca.getRegion())
 					if self._collectImages:
 						ra = self._transform.rcaToSubraster(r, self._imgDim)
-						imgs = collectImages("%0.4d" % fieldNumber, self._rcaFov, dims=ra.getImageDimensions(), dwell=3, path="%s/FIELDS" % self._path, subRaster=ra.getSubRaster(), rotation=0.0)
+						imgs = collectImages("%04d" % (fieldNumber+1, ), self._rcaFov, dims=ra.getImageDimensions(), dwell=3, path="%s/FIELDS" % self._path, subRaster=ra.getSubRaster(), rotation=0.0, writeMask = SAVE_FIELD_MASK)
 						ii = imgs[1]
 						mg.drawImage(ii, r.x, r.y, r.x + r.width, r.y + r.height, 0, 0, ii.getWidth(), ii.getHeight(), None)
 						_afafb.updateFieldImage(map)
@@ -1580,10 +1600,11 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 							_afafb.updateParticleImage(imgs[0])
 							if spec:
 								props = spec.getProperties()
-								if len(imgs) > 0:
-									props.setImageProperty(props.MicroImage, imgs[1])
 								if len(imgs) > 1:
-									props.setImageProperty(props.MicroImage2, imgs[0])
+									props.setImageProperty(props.MicroImage, imgs[1]) # BSED
+									props.setImageProperty(props.MicroImage2, imgs[0]) # SED
+								else:
+									props.setImageProperty(props.MicroImage,imgs[0])
 								self._zep.writeSpectrum(spec, pNum)
 							else:
 								self.debug("CollectField 07: Missing image for P%i" % (pNum, ))
@@ -1739,7 +1760,7 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 					tmp = tmp + u"   Tiles & %d of $\\SI{%g}{\\milli\\meter} \\times \\SI{%g}{\\milli\\meter}$\\\\\n" % (tiling.size(), tiling.getTileDimension()[0], tiling.getTileDimension()[0])
 					tmp = tmp + u"   Area: \\SI{%g}{\\milli\\meter\\squared}\\\\\n" % (tiling.getArea(), )
 					tmp = tmp + u"\end{tabular}"
-				tmp.replace("α","$\alpha$")
+				tmp.replace(u"α",u"$\alpha$")
 
 				fos = jio.FileOutputStream(jio.File(self._path, "%s.tex" % self._sample))
 				try:
@@ -1858,7 +1879,7 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 				if startField > 1:
 					print "Starting analysis at field %d" % startField
 					tos2.println("Starting analysis at field %d" % startField)
-				dispTiling = semstg.DisplayTiling(tiling, 2048, ( self._fov/self._overlap, self._fov/self._overlap) )
+				dispTiling = semstg.DisplayTiling(tiling, 4096, ( self._fov/self._overlap, self._fov/self._overlap) )
 				try:
 					for i, tile in enumerate(dispTiling):
 						self.debug("Tile %d - 00" % (i, ))
@@ -1870,7 +1891,7 @@ areaCriterion(...), maxCriterion(...) build common criteria."""
 							self.debug("Tile %d - 02" % (i, ))
 							ttmmpp = "Field %d of %d:\t%s\t%s\t%0.2f nA" % (field, tiling.size(), tile.getCenter(), self._timer.updateString(field - startField), (_ts.getIAbsorbed() / 1000.0))
 							tos2.println(ttmmpp)
-							time.sleep(0.5)
+							time.sleep(0.2)
 							_afafb.updateField(field, jl.Math.min(endField,tiling.size()) - startField + 1, self._zep.getParticleCount())
 							self.debug("Tile %d - 03" % (i, ))
 							termP = self.collectField(field)
@@ -2365,7 +2386,7 @@ def animateSIImages(name, path=None):
 		tmp = '%s -loop 0 "%s\\Image[Ch%d].gif"' % (tmp, path, ch)
 		execute(tmp, True)
 
-def write(objs, name, path=None, fmt="msa"):
+def write(objs, name, path=None, fmt="msa", writeMask=0xFF):
 	"""write(objs,name,[path], [fmt="msa"])
 	Write a spectrum, an image or an array of these to disk file(s).  The results will be located \
 	in 'defaultPath' unless some other path is specified"""
@@ -2374,7 +2395,10 @@ def write(objs, name, path=None, fmt="msa"):
 	if isinstance(objs, javaarray.array) or isinstance(objs, tuple) or isinstance(objs, list):
 		for i, obj in enumerate(objs):
 			if isinstance(obj, ept.ScaledImage):
-				write(obj, "%s[%s]" % (name, (obj.getDetectorIndex() if obj.getDetectorIndex() else str(i)), ), path, fmt=fmt)
+				if isinstance(obj, ept.ScaledImage):
+					di = (int(obj.getDetectorIndex()) if obj.getDetectorIndex() else i)
+					if writeMask & (1<<di):
+						write(obj, "%s[%d]" % (name, di, ), path, fmt=fmt)
 			else:
 				write(obj, "%s[%d]" % (name, i), path, fmt=fmt)
 	elif isinstance(objs, semss.DataItems.ImageDatum):
@@ -2418,9 +2442,9 @@ def annotateImages(path = None):
 			img = []
 			for i in range(0, 4):
 				if m["TYPE"]=="SI":
-					pt=jio.File(path, m["NAME"])
-					i0 = jio.File(pt, "Image[0][[%d]].png" % (i, ))
-					outFile = jio.File(pt, "Image[0][[%d]][SC].png" % (i, ))
+					fpt=jio.File(path, m["NAME"])
+					i0 = jio.File(fpt, "Image[0][[%d]].png" % (i, ))
+					outFile = jio.File(fpt, "Image[0][[%d]][SC].png" % (i, ))
 				else:
 					i0 = jio.File(path, "%s[%d].png" % (m["NAME"], i))
 					outFile = jio.File(path, "%s[%d][SC].png" % (m["NAME"], i))
@@ -2447,10 +2471,10 @@ if connect:
 		Mark a fiducial point.  'sample' is the sample name, fids is a list to contain the stage coordinates."""
 		n = len(fids) + 1
 		fids.append(_stg.getPosition())
-		imgs = collectImages("%s F%d 1_0 mm" % (sample, n), fov=1.0, dims=(512, 512))
+		imgs = collectImages("%s F%d 1_0 mm" % (sample, n), fov=1.0, dims=(512, 512), markCenter=True, writeMask=SAVE_IMAGE_MASK)
 		for img in imgs:
 			img.applyCenterCrossHair()
-		imgs=collectImages("%s F%d 0_1 mm" % (sample, n), fov=0.1, dims=(512, 512))
+		imgs=collectImages("%s F%d 0_1 mm" % (sample, n), fov=0.1, dims=(512, 512), markCenter=True, writeMask=SAVE_IMAGE_MASK)
 		for img in imgs:
 			img.applyCenterCrossHair()
 	
@@ -2459,9 +2483,9 @@ if connect:
 		Mark an analysis point. 'sample' is the sample name, 'pts' is a point list(), 'comp' is the point name."""
 		next = (comp, [])
 		add = True
-		for pt in pts:
-			if pt[0] == comp:
-				next = pt
+		for pnt in pts:
+			if pnt[0] == comp:
+				next = pnt
 				add = False
 				break
 		if add:
@@ -2469,7 +2493,7 @@ if connect:
 		next[1].append(_stg.getPosition())
 		if withImg:
 			imgLabel = "%s %s[%d]" % (sample, comp, len(next[1]))
-			imgs = collectImages(imgLabel, fov=0.5, dims=(256, 256))
+			imgs = collectImages(imgLabel, fov=0.5, dims=(256, 256), markCenter=True, writeMask=SAVE_IMAGE_MASK)
 			for img in imgs:
 				img.applyCenterCrossHair()
 			write(imgs, imgLabel)
@@ -2485,34 +2509,33 @@ if True:
 		home = _stg.getPosition()
 		for x in range(0, xDim):
 			for y in range(0, yDim):
-				pt = home.clone()
-				pt.set(X_AXIS, pt0[0] + x*xStep)
-				pt.set(Y_AXIS, pt0[1] + y*yStep)
-				_stg.moveTo(pt)
+				pnt = home.clone()
+				pnt.set(X_AXIS, pt0[0] + x*xStep)
+				pnt.set(Y_AXIS, pt0[1] + y*yStep)
+				_stg.moveTo(pnt)
 				markPoint(std, comp, withImg)
-				
+
 	def traverse(ends, std, comp, n):
 		"""traverse(ends, std, n)
 		Marks a series of n points from end[0] to end[1]. Stores the result to a list of points in std associated with the composition comp."""
 		xStep, yStep = (ends[1].get(X_AXIS)-ends[0].get(X_AXIS))/(n-1.0), (ends[1].get(Y_AXIS)-ends[0].get(Y_AXIS))/(n-1.0)
 		for i in range(0, n):
-			pt = ends[0].clone()
-			pt.set(X_AXIS, ends[0].get(X_AXIS) + i*xStep)
-			pt.set(Y_AXIS, ends[0].get(Y_AXIS) + i*yStep)
-			_stg.moveTo(pt)
-			markPoint(std, comp, False)				
-
+			pnt = ends[0].clone()
+			pnt.set(X_AXIS, ends[0].get(X_AXIS) + i*xStep)
+			pnt.set(Y_AXIS, ends[0].get(Y_AXIS) + i*yStep)
+			_stg.moveTo(pnt)
+			markPoint(std, comp, False)
 	def scatter(pts, comp, withImg=False, n=5, d=0.1):
 		"""scatter(pts, comp, withImg=False, n=5, d=0.1)
 		Adds 'n' points to the point list 'pts' associated with the named material 'comp' selected at random a distance 'd' from the current stage point."""
 		home = _stg.getPosition()
 		for i in range(0, n):
 			if i <> 0:
-				pt = home.clone()
+				pnt = home.clone()
 				th = 2.0 * jl.Math.PI * jl.Math.random()
-				pt.set(X_AXIS, pt.get(X_AXIS) + jl.Math.cos(th) * d * jl.Math.random())
-				pt.set(Y_AXIS, pt.get(Y_AXIS) + jl.Math.sin(th) * d * jl.Math.random())
-				_stg.moveTo(pt)
+				pnt.set(X_AXIS, pnt.get(X_AXIS) + jl.Math.cos(th) * d * jl.Math.random())
+				pnt.set(Y_AXIS, pnt.get(Y_AXIS) + jl.Math.sin(th) * d * jl.Math.random())
+				_stg.moveTo(pnt)
 			markPoint(pts, comp, withImg)
 
 class Elapse:
@@ -2552,17 +2575,17 @@ if connect:
 		"""collectSpectra(sample, pts, liveTime=60.0, fov=0.005)
 		Collect spectra on the named sample at each of the stage points in pts for the specified live time and field-of-view.  The \
 results are written to the defaultDir."""
-		for i, pt in enumerate(pts):
+		for i, pnt in enumerate(pts):
 			if terminated:
 				return
-			moveTo(pt)
+			moveTo(pnt)
 			name = "%s Auto%d.msa" % (sample, i)
-			collectImages(name, 0.256, (1024, 1024))
+			collectImages(name, 0.256, (1024, 1024), writeMask=SAVE_IMAGE_MASK)
 			_ts.setViewField(fov)
 			write(collect(liveTime, name), name, fmt="msa")
 
-	def collectStandards(sample, pts, liveTime=60.0, fov=0.005, disp = True, combine=False, offenze=True):
-		"""collectStandards(sample, pts, liveTime=60.0, fov=0.005, combine=False, offenze)
+	def collectStandards(sample, pts, liveTime=60.0, fov=0.005, disp = True, combine=True, offenze=True):
+		"""collectStandards(sample, pts, liveTime=60.0, fov=0.005, combine=True, offenze)
 		Collect standard spectra from the named sample at the specified points for the specified livetime.  
 "pts" is a list containing a tuple, the first element of which is a material name and the second element of which is a list of StageCoordinate objects. 
 "combine=True" to build a spectrum representing the sum of the spectra.
@@ -2584,18 +2607,18 @@ results are written to the defaultDir."""
 				comp = material(item[0])
 			except:
 				comp = None
-			for i, pt in enumerate(item[1]):
+			for i, pnt in enumerate(item[1]):
 				done = False
 				while not (done or terminated):
 					try:
 						name = "%s %s[%d]" % (sample, item[0], i)
 						newPt = startPt.clone()
-						newPt.set(X_AXIS, pt.get(X_AXIS))
-						newPt.set(Y_AXIS, pt.get(Y_AXIS))
-						newPt.set(Z_AXIS, pt.get(Z_AXIS))
-						newPt.set(R_AXIS, pt.get(R_AXIS))
+						newPt.set(X_AXIS, pnt.get(X_AXIS))
+						newPt.set(Y_AXIS, pnt.get(Y_AXIS))
+						newPt.set(Z_AXIS, pnt.get(Z_AXIS))
+						newPt.set(R_AXIS, pnt.get(R_AXIS))
 						_stg.moveTo(newPt)
-						collectImages(name, 0.256, (512, 512))
+						collectImages(name, 0.256, (512, 512), writeMask=SAVE_IMAGE_MASK)
 						specs = collect(liveTime, name=name, pc=True, mode='L', disp=disp, forcePC=False, fov=fov)
 						if combine and len(specs)>1:
 							sum=epq.SpectrumMath(specs[0])
@@ -2622,7 +2645,7 @@ results are written to the defaultDir."""
 								sp.setCompositionProperty(epq.SpectrumProperties.StandardComposition, comp)
 							sp.setObjectProperty(epq.SpectrumProperties.StagePosition, _stg.getPosition())
 						write(specs, "%s" % name, fmt="msa")
-						prev = pt
+						prev = pnt
 						done = True
 			completed = completed + 1
 			el.update(completed)
@@ -2646,8 +2669,8 @@ defined by oldFids."""
 	newPts = []
 	for item in pts:
 		tmp = []
-		for pt in item[1]:
-			tmp.append(epq.StageCoordinate(pt, td2))
+		for pnt in item[1]:
+			tmp.append(epq.StageCoordinate(pnt, td2))
 		newPts.append((item[0], tmp,))
 	return newPts
 
@@ -2656,9 +2679,9 @@ if connect:
 		"""extractStd(pts, name):
 		Extract the stage points associated with the specified name from the standard point list."""
 		res = []
-		for pt in pts:
-			if pt[0] == name:
-				for sp in pt[1]:
+		for pnt in pts:
+			if pnt[0] == name:
+				for sp in pnt[1]:
 					res.append(sp)
 		return res
 
@@ -2666,9 +2689,9 @@ if connect:
 		"""removeStd(pts, name):
 	Remove the stage points associated with the specified name from the standard point list."""
 		res = []
-		for pt in pts:
-			if pt[0] != name:
-				res.append(pt)
+		for pnt in pts:
+			if pnt[0] != name:
+				res.append(pnt)
 		return res
 
 	def validatePts(sample, pts):
@@ -2773,8 +2796,8 @@ def setProjectBasedPaths(project, sample, mode="Manual"):
 def updateZ(pts, newZ):
 	"""updateZ(pts, newZ)
 	Change the Z stage position to the specified value for all points in the point list pts"""
-	for pt in pts:
-		pt.set(Z_AXIS, newZ)
+	for pnt in pts:
+		pnt.set(Z_AXIS, newZ)
 	return pts
 
 if connect:
@@ -2786,7 +2809,7 @@ if connect:
 		if terminated:
 			return
 		std = "Pure copper"
-		if SITE==NIST:
+		if (SITE==NIST) or (SITE==ORNL):
 			e0 = 20.0
 		else:
 			e0 = 25.0
@@ -2801,14 +2824,18 @@ if connect:
 			print "Please set the beam energy to %0.1f keV" % e0
 			return
 		i0 = updatedPC(10.0)
-		if (i0.average() < 0.6) or (i0.average() > 1.2):
-			print "The probe current (%0.3f nA) is out of range (0.6 nA to 1.2 nA)." % i0.average()
+		if (i0.average() < 0.4) or (i0.average() > 1.2):
+			print "The probe current (%0.3f nA) is out of range (0.4 nA to 1.2 nA)." % i0.average()
 			return
 		print "Collecting %0.1f live time second spectra please wait..." % lt
 		clear()
 		specs = collect(lt, std)
+ 		if terminated:
+			return
 		cals=readCalibrations()
 		for i, spec in enumerate(specs):
+			if terminated:
+				return
 			if not spec:
 				continue
 			ok = True
@@ -2841,6 +2868,8 @@ if connect:
 				print "Report written to: %s" % f
 				wrap(spec).save("%s/QC[%s][%s].msa" % (path, det.getName(), std))
 				report(pqc.toHTML())
+		if terminated:
+			return
 		writeCalibrations(cals)
 	
 	def readCalibrations():
@@ -2914,7 +2943,7 @@ if connect:
 					if moveToTile(tile, xyOnly=True):
 						rPt = _stg.getPosition()
 						time.sleep(0.5)
-						collectImages("Tile[%d,%d]" % (mag, i) , fov, dims=(imgDim, imgDim), dwell=imgDwell, path=path)
+						collectImages("Tile[%d,%d]" % (mag, i) , fov, dims=(imgDim, imgDim), dwell=imgDwell, path=path, writeMask=SAVE_IMAGE_MASK)
 						tf.append("%d\t%d\t%g\t%g\t%g\t%g\t%g\t%g\n" % (mag, i, fov, fov * fov, area, rPt.get(X_AXIS), rPt.get(Y_AXIS), rPt.get(Z_AXIS)))
 						tf.flush()
 					tileCx = tileCx + 1
@@ -3063,10 +3092,10 @@ def collectMe(pts, lt=300, name="Spectrum", volatile=False, fov=0.2):
 	if terminated:
 		return
 	res = []
-	for i, pt in enumerate(pts):
-		moveTo(pt)
+	for i, pnt in enumerate(pts):
+		moveTo(pnt)
 		time.sleep(1.0)
-		collectImages("%s%d" % (name, i), fov)
+		collectImages("%s%d" % (name, i), fov, writeMask=SAVE_IMAGE_MASK)
 		if volatile:
 			res.append(collect(10.0, "%s%d_before" % (name, i), fov=0.005, forcePC=True))
 		res.append(collect(lt, "%s%d" % (name, i), fov=0.005, forcePC=(not volatile)))
@@ -3226,7 +3255,7 @@ def polygonalTiling(pts, mode=UNDERFILL, serpentine=False, fov = 0.5):
 def randomSubSetOfATiling(tiling, maxFields, seed=None):
 	"""randomSubSetTiling(tiling, maxFields):
 	Adapts a tiling to analyze at most maxFields chosen in an order that attempts to minimize stage travel distance.  Use this to analyze a pre-established number of tiles chosen at random."""
-	if maxFields>0:
+	if (maxFields>0) and (tiling.size()>maxFields):
 		if not seed:
 			seed = int(jl.System.currentTimeMillis()%0xFFFFFFF)
 		return semstg.RandomSubSet(tiling, maxFields,seed)
@@ -3333,7 +3362,9 @@ If p is a point on the plane then dot(n,p)=d. Knowing any two coordinates we can
 
 def meshZ(point, points):
 	"""meshZ(point, points)
-	Computes the z-height for 'point' from a list of x,y,z stage positions called 'points'.  The x,z,z stage positions form a mesh.  The closes three 'points' to 'point' are used to define a plane that is used to interpolate the x-y position in 'point' into a z-height.  meshZ returns a float, the z-height at x-y coordinates in 'point'."""
+	Computes the z-height for 'point' from a list of x,y,z stage positions called 'points'.  The x,z,z stage positions form a mesh.  
+	The closes three 'points' to 'point' are used to define a plane that is used to interpolate the x-y position in 'point' into a z-height.  
+	meshZ returns a float, the z-height at x-y coordinates in 'point'."""
 	def cmpDist(x,y):
 		if x[0]<y[0]:
 			return -1
@@ -3347,10 +3378,10 @@ def meshZ(point, points):
 	res = 10.0
 	distPts = []
 	minZ, maxZ = (100.0, -100.0)
-	for pt in points:
-		dist = jl.Math.pow(point.get(X_AXIS)-pt.get(X_AXIS),2.0)+jl.Math.pow(point.get(Y_AXIS)-pt.get(Y_AXIS),2.0)
-		distPts.append( (dist, pt) )
-		z = pt.get(Z_AXIS)
+	for pnt in points:
+		dist = jl.Math.pow(point.get(X_AXIS)-pnt.get(X_AXIS),2.0)+jl.Math.pow(point.get(Y_AXIS)-pnt.get(Y_AXIS),2.0)
+		distPts.append( (dist, pnt) )
+		z = pnt.get(Z_AXIS)
 		if z<minZ:
 			minZ=z
 		if z>maxZ:

@@ -3,8 +3,9 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://izpack.org/schema/installation http://izpack.org/schema/5.0/izpack-installation-5.0.xsd">
     <!-- The script doesn't work within Eclipse but can be build from the command line 
-    > cd  C:\Users\nritchie\git\nist-dtsa-ii\Installer
-    > "C:\Program Files (x86)\IzPack\bin\compile.bat" -h ${IZPACK_HOME} izPack_install.xml -b . -o dtsa2_microscopium.jar -k standard 
+    > c:
+    > cd C:\Users\nritchie\git\nist-dtsa-ii\Installer
+    >"C:\Program Files (x86)\IzPack\bin\compile.bat" -h ${IZPACK_HOME} izPack_install_full.xml -b . -o dtsa2_microscopium_full.jar -k standard 
     -->
     <variables>
         <variable name="TargetPanel.dir.windows" value="$USER_HOME\AppData\Local\NIST\$APP_NAME $APP_VER"/>
@@ -87,6 +88,8 @@
             <file override="update" src="$JARPATH/org/python/jython-standalone/2.7.2/jython-standalone-2.7.2.jar" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$BUILDPATH/epq.jar" targetdir="$INSTALL_PATH/"/>
             <fileset dir="$BUILDPATH/../../Lib/dtsa2" targetdir="${INSTALL_PATH}/Lib/dtsa2" excludes="*/.class"/>
+            <file override="update" src="$BUILDPATH/../../Lib/to10dash1.py" targetdir="${INSTALL_PATH}/Lib/dtsa2"/>
+            
         </pack>
         <pack name="Java Runtime for Windows" preselected="yes" required="no">
             <description>An integrated Java 14.0 JRE (run-time environment) for MS Windows only!!.</description>
@@ -116,8 +119,7 @@
             <file override="update" src="$BUILDPATH/NISTGlassDB.jar" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$BUILDPATH/GlassDatabase.exe" targetdir="$INSTALL_PATH/"/>
         </pack>
-        <!--
-        <pack name="NIST Graf Application" preselected="no" required="no">
+        <pack name="NIST Graf Application" preselected="yes" required="no">
             <description>Data analysis for RJ Lee Group / ASPEX automated particle analysis data files.  DON'T INSTALL THIS UNLESS YOU KNOW YOU NEED IT!</description>
             <file override="update" src="$BUILDPATH/graf.jar" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$BUILDPATH/Graf.exe" targetdir="$INSTALL_PATH/"/>
@@ -126,7 +128,7 @@
             <file override="update" src="$JARPATH/org/apache/commons/commons-collections4/4.1/commons-collections4-4.1.jar" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$JARPATH/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar" targetdir="$INSTALL_PATH/"/>
         </pack> 
-        <pack name="SEMantics" preselected="no" required="no">
+        <pack name="SEMantics" preselected="yes" required="no">
             <description>An application for automating a TESCAN SEM through DTSA-II.</description>
             <file override="update" src="$BUILDPATH/semantics.jar" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$BUILDPATH/graf.jar" targetdir="$INSTALL_PATH/"/>
@@ -136,7 +138,6 @@
             <file override="update" src="$BUILDPATH/bbb.py" targetdir="$INSTALL_PATH/"/>
             <file override="update" src="$BUILDPATH/TESCAN_backdrop theme.themepack" targetdir="$INSTALL_PATH/"/>
         </pack>
-        -->
     </packs>
     <listeners>
         <listener classname="RegistryInstallerListener" stage="install" >
