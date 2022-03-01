@@ -8,7 +8,7 @@
   <cmdLine></cmdLine>
   <chdir></chdir>
   <priority>normal</priority>
-  <downloadUrl>http://java.com/download</downloadUrl>
+  <downloadUrl>https://adoptopenjdk.net/?variant=openjdk15&amp;jvmVariant=hotspot</downloadUrl>
   <supportUrl>http://www.cstl.nist.gov/div837/837.02/epq/dtsa2/index.html</supportUrl>
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
@@ -18,7 +18,7 @@
     <path>java-runtime</path>
     <bundledJre64Bit>true</bundledJre64Bit>
     <bundledJreAsFallback>false</bundledJreAsFallback>
-    <minVersion>1.8.0</minVersion>
+    <minVersion>1.11.0</minVersion>
     <maxVersion></maxVersion>
     <jdkPreference>preferJre</jdkPreference>
     <runtimeBits>64/32</runtimeBits>
@@ -26,13 +26,13 @@
     <maxHeapPercent>70</maxHeapPercent>
   </jre>
   <versionInfo>
-    <fileVersion>2019.8.30.1</fileVersion>
-    <txtFileVersion>Lorentz 2019-08-30</txtFileVersion>
-    <fileDescription>NIST DTSA-II Lorentz</fileDescription>
+    <fileVersion>1.3.1.6</fileVersion>
+    <txtFileVersion>Microscopium 2021-04-26</txtFileVersion>
+    <fileDescription>NIST DTSA-II Microscopium</fileDescription>
     <copyright>Not subject to copyright (US government work)</copyright>
-    <productVersion>2019.8.30.1</productVersion>
-    <txtProductVersion>Lorentz 2019-08-30</txtProductVersion>
-    <productName>NIST DTSA-II Lorentz</productName>
+    <productVersion>1.3.1.6</productVersion>
+    <txtProductVersion>Microscopium 2021-04-26</txtProductVersion>
+    <productName>NIST DTSA-II Microscopium</productName>
     <companyName>National Insitute of Standards and Technology</companyName>
     <internalName>DTSA-II</internalName>
     <originalFilename>DTSA-II.exe</originalFilename>

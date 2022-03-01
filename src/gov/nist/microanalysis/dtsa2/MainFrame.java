@@ -43,6 +43,7 @@ import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -52,7 +53,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,6 +122,7 @@ import gov.nist.microanalysis.EPQLibrary.ISpectrumData;
 import gov.nist.microanalysis.EPQLibrary.ParticleSignature;
 import gov.nist.microanalysis.EPQLibrary.PeakROISearch;
 import gov.nist.microanalysis.EPQLibrary.PeakStripping;
+import gov.nist.microanalysis.EPQLibrary.RegionOfInterestSet;
 import gov.nist.microanalysis.EPQLibrary.SpectrumProperties;
 import gov.nist.microanalysis.EPQLibrary.SpectrumSmoothing;
 import gov.nist.microanalysis.EPQLibrary.SpectrumUtils;
@@ -338,6 +339,7 @@ public class MainFrame extends JFrame {
 	private final JMenuItem jMenuItem_Annotation = new JMenuItem();
 	private final JMenuItem jMenuItem_OpenInBrowser = new JMenuItem();
 
+	private final JMenuItem jMenuItem_SetKLMs = new JMenuItem("Set KLMs");
 	// private final JMenu jMenu_PlugIn = new JMenu();
 	// private final JMenuItem jMenuItem_Install = new JMenuItem();
 
@@ -591,8 +593,10 @@ public class MainFrame extends JFrame {
 
 		@Override
 		public void mousePressed(MouseEvent me) {
-			if (me.isPopupTrigger())
+			if (me.isPopupTrigger()) {
 				mMenu.show(mReport, me.getX(), me.getY());
+
+			}
 		}
 
 		@Override
@@ -734,11 +738,8 @@ public class MainFrame extends JFrame {
 	}
 
 	public void showKLMLines(Collection<Element> elms) {
-		TreeSet<KLMLine> lines = new TreeSet<KLMLine>();
-		for (Element elm : elms)
-			lines.addAll(KLMLine.suggestKLM(elm, ToSI.keV(20.0)));
 		clearKLMs();
-		jSpecDisplay_Main.addKLMs(lines);
+		jKLMTreePanel.parseElementField(Element.toString(elms, true));
 	}
 
 	public void clearKLMs() {
@@ -1589,6 +1590,7 @@ public class MainFrame extends JFrame {
 			final JPopupMenu pum = new JPopupMenu();
 			final JMenuItem copy = new JMenuItem("Copy");
 			final JMenuItem html = new JMenuItem("Copy to HTML");
+			final JMenuItem setklms = new JMenuItem("Set KLMs");
 			copy.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
@@ -1622,8 +1624,23 @@ public class MainFrame extends JFrame {
 					}
 				}
 			});
+			setklms.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if (jTable_SpecComposition.getModel() instanceof CompositionTableModel) {
+						final CompositionTableModel model = (CompositionTableModel) jTable_SpecComposition.getModel();
+						showKLMLines(model.getComposition().getElementSet());
+					}
+					if (jTable_SpecComposition.getModel() instanceof ParticleSignatureTableModel) {
+						final ParticleSignatureTableModel model = (ParticleSignatureTableModel) jTable_SpecComposition
+								.getModel();
+						showKLMLines(model.getSignature().getAllElements());
+					}
+				}
+			});
 			pum.add(copy);
 			pum.add(html);
+			pum.add(setklms);
 			jTable_SpecComposition.addMouseListener(new PopupMenuMouseAdapter(jTable_SpecComposition, pum));
 		}
 
@@ -1655,11 +1672,18 @@ public class MainFrame extends JFrame {
 					final String str = header + " = " + val.toString();
 					jStatusBar_Main.setText(str);
 					jTable_SpecProperties.setToolTipText(wordWrap("<html>" + str, 40));
-					if (val instanceof Composition)
+					if (val instanceof Composition) {
 						updateCompositionTable(header, (Composition) val);
-					if (val instanceof ParticleSignature)
+						jMenuItem_SetKLMs.setEnabled(jTable_SpecProperties.getSelectedRowCount() == 1);
+					} else if (val instanceof ParticleSignature) {
 						updateParticleSignature((ParticleSignature) val);
-				}
+						jMenuItem_SetKLMs.setEnabled(jTable_SpecProperties.getSelectedRowCount() == 1);
+					} else if (header == "Element List")
+						jMenuItem_SetKLMs.setEnabled(jTable_SpecProperties.getSelectedRowCount() == 1);
+					else
+						jMenuItem_SetKLMs.setEnabled(false);
+				} else
+					jMenuItem_SetKLMs.setEnabled(false);
 			}
 		});
 		final JPopupMenu pum = new JPopupMenu();
@@ -1685,6 +1709,48 @@ public class MainFrame extends JFrame {
 			}
 		});
 		pum.add(copy);
+		final JMenuItem copyvalue = new JMenuItem("Copy value(s)");
+		copyvalue.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				final int[] rows = jTable_SpecProperties.getSelectedRows();
+				final StringBuffer sb = new StringBuffer();
+				final TableModel model = jTable_SpecProperties.getModel();
+				for (final int sr : rows)
+					if (sr >= 0) {
+						if (sb.length() > 0)
+							sb.append("\n");
+						sb.append(model.getValueAt(sr, 1).toString());
+					}
+				if (sb.length() > 0) {
+					final StringSelection ss = new StringSelection(sb.toString());
+					getToolkit().getSystemClipboard().setContents(ss, ss);
+				}
+			}
+		});
+		pum.add(copyvalue);
+		jMenuItem_SetKLMs.addActionListener(new AbstractAction() {
+
+			private static final long serialVersionUID = 9129506582520064690L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				final int[] rows = jTable_SpecProperties.getSelectedRows();
+				if (rows.length == 1) {
+					final TableModel model = jTable_SpecProperties.getModel();
+					int row = rows[0];
+					Object obj = model.getValueAt(row, 1);
+					if (model.getValueAt(row, 0).toString() == "Element List")
+						showKLMLines(Element.parseElementString(obj.toString()));
+					else if (obj instanceof Composition)
+						showKLMLines(((Composition) obj).getElementSet());
+					else if (obj instanceof ParticleSignature)
+						showKLMLines(((ParticleSignature) obj).getAllElements());
+
+				}
+			}
+		});
+		pum.add(jMenuItem_SetKLMs);
 		jTable_SpecProperties.addMouseListener(new PopupMenuMouseAdapter(jTable_SpecProperties, pum));
 
 		{
@@ -1700,7 +1766,10 @@ public class MainFrame extends JFrame {
 
 		jButton_OpenPy.setText("Open");
 		jButton_OpenPy.setToolTipText("Open and run a Python script file.");
-		jButton_OpenPy.addActionListener(new ActionListener() {
+		jButton_OpenPy.addActionListener(new AbstractAction() {
+
+			private static final long serialVersionUID = 5130508190825691790L;
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				openPythonScript();
@@ -1710,7 +1779,10 @@ public class MainFrame extends JFrame {
 
 		jButton_Stop.setText("Terminate");
 		jButton_Stop.setToolTipText("Request that a script terminate execution.");
-		jButton_Stop.addActionListener(new ActionListener() {
+		jButton_Stop.addActionListener(new AbstractAction() {
+
+			private static final long serialVersionUID = -7587081379423939674L;
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				jCommandLine_Main.terminateScript();
@@ -1722,7 +1794,10 @@ public class MainFrame extends JFrame {
 		if (mRecentPyModel.getSize() > 0)
 			mRecentPyModel.setSelectedItem(mRecentPyModel.getElementAt(0));
 		jComboBox_PrevPy.setToolTipText("Select a recent script to rerun.");
-		final ActionListener pyActionListener = new ActionListener() {
+		final AbstractAction pyActionListener = new AbstractAction() {
+
+			private static final long serialVersionUID = -5513291816424696859L;
+
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				runRecentPy();
@@ -2355,7 +2430,10 @@ public class MainFrame extends JFrame {
 				}
 			});
 			JButton ok = new JButton("\u2713");
-			ok.addActionListener(new ActionListener() {
+			ok.addActionListener(new AbstractAction() {
+
+				private static final long serialVersionUID = -1733997090311936802L;
+
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					mResult = jTextField_Name.getText();
@@ -2363,7 +2441,10 @@ public class MainFrame extends JFrame {
 				}
 			});
 			JButton cancel = new JButton("\u2718");
-			cancel.addActionListener(new ActionListener() {
+			cancel.addActionListener(new AbstractAction() {
+
+				private static final long serialVersionUID = 3840241556783104777L;
+
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					mResult = null;
@@ -2436,7 +2517,7 @@ public class MainFrame extends JFrame {
 							msd.addSpectrum(sd);
 						msd.setLocationRelativeTo(MainFrame.this);
 						msd.setVisible(true);
-						if (msd.shouldSave()) {
+						if (msd.shouldSave()  && (!msd.isCancelled())) {
 							final ISpectrumData res = msd.getResult();
 							if (res != null) {
 								mDataManager.addSpectrum(res, true);
@@ -2447,14 +2528,15 @@ public class MainFrame extends JFrame {
 								final StringBuffer hl = new StringBuffer();
 								hl.append("<h3>Making " + res.toString() + "</h3>\n");
 								DescriptiveStatistics cpnas = new DescriptiveStatistics();
-								final List<ISpectrumData> spectra = msd.getSpectra();
+								final List<ISpectrumData> spectra = msd.getSelected();
+								final RegionOfInterestSet rois = msd.computeROIS();
 								for (final ISpectrumData spec : spectra)
 									cpnas.add(SpectrumUtils.totalCounts(spec, true)
 											/ SpectrumUtils.getDose(spec.getProperties()));
 								if (spectra.size() > 1) {
 									hl.append("<p><table>\n");
 									hl.append(
-											"<tr><th>Spectrum</th><th>Beam Energy<br>(keV)</th><th>Probe Current<br>(nA)</th><th>Live Time<br>(s)</th><th>Counts/(nA\u00B7S)</th><th>Variance<br>(&sigma;)</th></tr>\n");
+											"<tr><th>Spectrum</th><th>Beam Energy<br>(keV)</th><th>Probe Current<br>(nA)</th><th>Live Time<br>(s)</th><th>Counts/(nA\u00B7S)</th><th>Score</th></tr>\n");
 									for (final ISpectrumData spec : spectra) {
 										final SpectrumProperties sp = spec.getProperties();
 										hl.append("<tr>");
@@ -2472,14 +2554,13 @@ public class MainFrame extends JFrame {
 												.createGaussian(SpectrumUtils.totalCounts(spec, true), spec.toString()),
 												SpectrumUtils.getDose(sp));
 										hl.append("<td>" + uv2.format(hu) + "</td>");
-										final UncertainValue2 tmp = UncertainValue2.divide(uv2, cpnas.average());
-										hl.append("<td>" + hu.format((1.0 - tmp.doubleValue()) / tmp.uncertainty())
-												+ "</td>");
+										hl.append("<td>" + hu.format(MakeStandardDialog.score(spec, spectra, rois)) + "</td>");
 										hl.append("</tr>\n");
 									}
 									hl.append("</table></p>");
 									hl.append("<p><table>\n");
 								}
+								// Report the standard properties...
 								hl.append(
 										"<tr><th>Spectrum</th><th>Beam Energy<br>(keV)</th><th>Probe Current<br>(nA)</th><th>Live Time<br>(s)</th><th>Counts/(nA\u00B7S)</th></tr>\n");
 								{
@@ -2497,22 +2578,28 @@ public class MainFrame extends JFrame {
 											+ hu.format(
 													sp.getNumericWithDefault(SpectrumProperties.LiveTime, Double.NaN))
 											+ "</td>");
-									hl.append("<td>"
-											+ hu.format(
-													SpectrumUtils.totalCounts(res, true) / SpectrumUtils.getDose(sp))
-											+ "</td>");
+									final UncertainValue2 uv2 = UncertainValue2.divide(UncertainValue2
+											.createGaussian(SpectrumUtils.totalCounts(res, true), res.toString()),
+											SpectrumUtils.getDose(sp));
+									hl.append("<td>"+ uv2.format(hu)+ "</td>");
 									hl.append("</tr>\n");
 								}
 								hl.append("</table></p>");
 								final List<File> files = MainFrame.this.saveStandards(msd.getBundle());
+								File msafile = new File(DTSA2.getSpectrumDirectory(), normalizeFilename(msd.getResult().toString()));
 								if (files.size() > 0) {
 									hl.append("<ul>\n");
 									for (File file : files)
 										hl.append("<li>Standard saved as " + file.getName() + "</li>\n");
 									hl.append("</ul>\n");
+									try {
+										exportSpectrumAsEMSA(msd.getResult(), msafile.getAbsolutePath());
+										hl.append("<li>Spectrum saved as " + msafile.getName() + "</li>\n");
+									} catch (Exception e) {
+										e.printStackTrace();
+									}
 								}
 								appendHTML(hl.toString());
-								saveStandardAsEMSA(msd.getResult());
 							}
 						}
 					} else
@@ -2778,41 +2865,38 @@ public class MainFrame extends JFrame {
 		return fn.replace(":", "").replace('\\', '-').replace('/', '-');
 	}
 
-	public File saveStandard(Element elm, StandardBundle bundle) {
-		ISpectrumData sd = bundle.getStandard();
-		final String fn = normalizeFilename(elm.toAbbrev() + " std - " + sd.toString().replace(" std", ""));
-		final String dir = DTSA2.getSpectrumDirectory();
-		final JFileChooser jfc = new JFileChooser(dir);
-		final SimpleFileFilter std = new SimpleFileFilter(new String[] { "zstd" }, "DTSA-II Standard Bundle");
-		jfc.addChoosableFileFilter(std);
-		jfc.setFileFilter(std);
-		jfc.setSelectedFile(new File(dir, fn));
-		jfc.setDialogTitle("Save " + fn + " as...");
-		final int option = jfc.showSaveDialog(MainFrame.this);
-		if (option == JFileChooser.APPROVE_OPTION) {
-			File res = jfc.getSelectedFile();
-			if (res != null) {
-				if (jfc.getFileFilter() instanceof SimpleFileFilter)
-					res = ((SimpleFileFilter) jfc.getFileFilter()).forceExtension(res);
-				DTSA2.updateSpectrumDirectory(res.getParentFile());
-				try {
-					sd.getProperties().setTextProperty(SpectrumProperties.SourceFile, res.getCanonicalPath());
-					bundle.write(res);
-					return res;
-				} catch (final Exception ex) {
-					ErrorDialog.createErrorMessage(MainFrame.this, "Error saving spectrum", ex);
-				}
-			}
+	public File saveStandard(Element elm, StandardBundle bundle, File res) {
+		if( res.exists() && !res.isDirectory()) {
+			Date mod = new Date(res.lastModified());
+			res.renameTo(new File(replaceExtension(res.getAbsolutePath(), " - "+formatDate(mod)+".zstd")));
+		}
+		try {
+			bundle.write(res);
+			return res;
+		} catch (final Exception ex) {
+			ErrorDialog.createErrorMessage(MainFrame.this, "Error saving spectrum", ex);
 		}
 		return null;
 	}
 
 	public List<File> saveStandards(Map<Element, StandardBundle> bundles) {
+		final String dir = DTSA2.getSpectrumDirectory();
+		final JFileChooser jfc = new JFileChooser(dir);
+		jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		jfc.setDialogTitle("Save standards to...");
+		jfc.setSelectedFile(new File(dir));
+		final int option = jfc.showSaveDialog(MainFrame.this);
 		ArrayList<File> res = new ArrayList<>();
-		for (Map.Entry<Element, StandardBundle> me : bundles.entrySet()) {
-			File f = saveStandard(me.getKey(), me.getValue());
-			if (f != null)
-				res.add(f);
+		if (option == JFileChooser.APPROVE_OPTION) {
+			File seldir = jfc.getSelectedFile();
+			DTSA2.updateSpectrumDirectory(seldir);
+			for (Map.Entry<Element, StandardBundle> me : bundles.entrySet()) {
+				ISpectrumData sd = me.getValue().getStandard();
+				final String fn = normalizeFilename(me.getKey().toAbbrev() + " std - " + sd.toString().replace(" std", "")+".zstd");
+				File f = saveStandard(me.getKey(), me.getValue(), new File(seldir, fn));
+				if (f != null)
+					res.add(f);
+			}
 		}
 		return res;
 	}
@@ -2874,6 +2958,12 @@ public class MainFrame extends JFrame {
 			}
 		}
 	}
+	
+	
+	public static String formatDate(Date fn) {
+		DateFormat df =new SimpleDateFormat("yyyyMMdd HHmmss z");
+		return df.format(fn);
+	}
 
 	/**
 	 * Replaces or appends a new extension onto the specified file name.
@@ -2893,54 +2983,62 @@ public class MainFrame extends JFrame {
 	}
 
 	public static String exportSpectrumAsCSV(ISpectrumData sd, String filename) throws Exception {
-		if (filename.toUpperCase().endsWith(".CSV"))
+		if (!filename.toUpperCase().endsWith(".CSV"))
 			filename = filename + ".csv";
-		File newFile = new File(filename);
-		for (int i = 1; newFile.exists(); ++i)
-			newFile = new File(replaceExtension(filename, "." + Integer.toString(i) + ".csv"));
-		try (final FileOutputStream os = new FileOutputStream(newFile)) {
+		File file = new File(filename);
+		if(file.exists() && !file.isDirectory()) {
+			Date mod = new Date(file.lastModified());
+			file.renameTo(new File(replaceExtension(filename, " - "+formatDate(mod)+".csv")));
+		}
+		try (final FileOutputStream os = new FileOutputStream(file)) {
 			WriteSpectrumAsCSV.write(sd, os);
 		}
-		return newFile.getName();
+		return file.getName();
 	}
 
 	public static String exportSpectrumAsEMSA(ISpectrumData sd, String filename) throws Exception {
 		final String fu = filename.toUpperCase();
 		if (!(fu.endsWith(".MSA") || fu.endsWith(".EMSA") || fu.endsWith(".TXT")))
 			filename = filename + ".msa";
-		File newFile = new File(filename);
-		for (int i = 1; newFile.exists(); ++i)
-			newFile = new File(replaceExtension(filename, "." + Integer.toString(i) + ".msa"));
-		try (final FileOutputStream os = new FileOutputStream(newFile)) {
+		File file = new File(filename);
+		if(file.exists() && !file.isDirectory()) {
+			Date mod = new Date(file.lastModified());
+			file.renameTo(new File(replaceExtension(filename, " - "+formatDate(mod)+".msa")));
+		}
+		try (final FileOutputStream os = new FileOutputStream(file)) {
 			WriteSpectrumAsEMSA1_0.write(sd, os, WriteSpectrumAsEMSA1_0.Mode.COMPATIBLE);
 		}
-		return newFile.getName();
+		return file.getName();
 	}
 
 	public static String exportSpectrumAsTIFF(ISpectrumData sd, String filename) throws Exception {
 		final String fu = filename.toUpperCase();
 		if (!(fu.endsWith(".TIFF") || fu.endsWith(".TIF")))
 			filename = filename + ".tif";
-		File newFile = new File(filename);
-		for (int i = 1; newFile.exists(); ++i)
-			newFile = new File(replaceExtension(filename, "." + Integer.toString(i) + ".tif"));
-		try (final FileOutputStream os = new FileOutputStream(newFile)) {
+		File file = new File(filename);
+		if(file.exists() && !file.isDirectory()) {
+			Date mod = new Date(file.lastModified());
+			file.renameTo(new File(replaceExtension(filename, " - "+formatDate(mod)+".tif")));
+		}
+		try (final FileOutputStream os = new FileOutputStream(file)) {
 			WriteSpectrumAsTIFF.write(sd, os);
 		}
-		return newFile.getName();
+		return file.getName();
 	}
 
 	public static String exportSpectrumAsTiaEMSA(ISpectrumData sd, String filename) throws Exception {
 		final String fu = filename.toUpperCase();
 		if (!(fu.endsWith(".TIA.MSA") || fu.endsWith(".TIA.EMSA") || fu.endsWith(".TIA.TXT")))
 			filename = filename + ".tia.msa";
-		File newFile = new File(filename);
-		for (int i = 1; newFile.exists(); ++i)
-			newFile = new File(replaceExtension(filename, "." + Integer.toString(i) + ".tia.msa"));
-		try (final FileOutputStream os = new FileOutputStream(newFile)) {
+		File file = new File(filename);
+		if(file.exists() && !file.isDirectory()) {
+			Date mod = new Date(file.lastModified());
+			file.renameTo(new File(replaceExtension(filename, " - "+formatDate(mod)+".msa")));
+		}
+		try (final FileOutputStream os = new FileOutputStream(file)) {
 			WriteSpectrumAsEMSA1_0.write(sd, os, WriteSpectrumAsEMSA1_0.Mode.FOR_TIA);
 		}
-		return newFile.getName();
+		return file.getName();
 	}
 
 	/**
@@ -2957,7 +3055,12 @@ public class MainFrame extends JFrame {
 			list.setHeader("Exporting spectra to <i>" + path.getAbsolutePath() + "</i> as CSV");
 			for (final ISpectrumData spec : getSelectedSpectra())
 				try {
-					final String fn = exportSpectrumAsCSV(spec, new File(path, spec.toString()).getAbsolutePath());
+					File file = new File(path, spec.toString());
+					if(file.exists() && !file.isDirectory()) {
+						Date mod = new Date(file.lastModified());
+						file.renameTo(new File(replaceExtension(file.getAbsolutePath(), " - "+formatDate(mod)+".csv")));
+					}
+					final String fn = exportSpectrumAsCSV(spec, file.getAbsolutePath());
 					if (fn != null)
 						list.add(
 								"The spectrum <i>" + spec.toString() + "</i> was exported as CSV to <i>" + fn + "</i>");
@@ -2991,8 +3094,14 @@ public class MainFrame extends JFrame {
 				try {
 					try {
 						final String name = TextUtilities.normalizeFilename(spec.toString() + "[" + i + "]");
-						File ff = new File(path, name);
-						final String fn = exportSpectrumAsEMSA(spec, ff.getAbsolutePath());
+						File file = new File(path, name);
+						if(file.exists() && !file.isDirectory()) {
+							Date mod = new Date(file.lastModified());
+							String newname = replaceExtension(file.getAbsolutePath(), " - "+formatDate(mod)+".msa");
+							file.renameTo(new File(newname));
+							list.add("Renaming existing file to <i>"+newname+"</i>.");
+						}
+						final String fn = exportSpectrumAsEMSA(spec, file.getAbsolutePath());
 						list.add("The spectrum <i>" + spec.toString() + "</i> was exported as EMSA to <i>" + fn
 								+ "</i>");
 					} catch (final Exception ex) {

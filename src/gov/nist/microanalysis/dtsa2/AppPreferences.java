@@ -305,7 +305,6 @@ public class AppPreferences {
          add(new JLabel("Correction Algorithm"), cc.xy(2, 1));
          jComboBox_ZAFAlgorithm = new JComboBox<String>();
          jComboBox_ZAFAlgorithm.addItem(CorrectionAlgorithm.XPPExtended.getName());
-         jComboBox_ZAFAlgorithm.addItem(CorrectionAlgorithm.Proza96Extended.getName());
          jComboBox_ZAFAlgorithm.addItem(CorrectionAlgorithm.PouchouAndPichoir.getName());
          jComboBox_ZAFAlgorithm.addItem(CorrectionAlgorithm.ZAFCorrection.getName());
          jComboBox_ZAFAlgorithm.addItem(CorrectionAlgorithm.NullCorrection.getName());
@@ -315,6 +314,7 @@ public class AppPreferences {
 
          add(new JLabel("Mass Absorption Coefficient"), cc.xy(2, 3));
          jComboBox_MAC = new JComboBox<String>();
+         jComboBox_MAC.addItem(MassAbsorptionCoefficient.Sabbatucci2016.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.Chantler2005.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.HeinrichDtsa.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.Heinrich86.getName());
@@ -326,6 +326,7 @@ public class AppPreferences {
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.PouchouPichoir88.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.Ruste79.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.SuperSet.getName());
+         jComboBox_MAC.addItem(MassAbsorptionCoefficient.SuperSet2.getName());
          jComboBox_MAC.addItem(MassAbsorptionCoefficient.Null.getName());
          jComboBox_MAC.setSelectedItem(getMACAlgorithm());
          add(jComboBox_MAC, cc.xy(4, 3));
@@ -1648,7 +1649,7 @@ public class AppPreferences {
       mShutdownScript = userPref.get("ShutdownScript", "");
       mEPQJavaDoc = userPref.get("EPQJavaDoc", EPQ_JAVA_DOC_DEFAULT);
       mCorrectionAlgorithm = userPref.get("CorrectionAlgorithm", CorrectionAlgorithm.XPPExtended.getName());
-      mMACAlgorithm = userPref.get("MACAlgorithm", MassAbsorptionCoefficient.Chantler2005.getName());
+      mMACAlgorithm = userPref.get("MACAlgorithm", MassAbsorptionCoefficient.Default.getName());
       mBremAngular = userPref.get("Bremsstrahlung angular distribution", BremsstrahlungAngularDistribution.Acosta2002L.getName());
       mIonizationXSec = userPref.get("Ionization cross section", AbsoluteIonizationCrossSection.BoteSalvat2008.getName());
       mSession = DTSA2.getSession();
